@@ -140,9 +140,9 @@ async def get_eep_profile(eep_code: str):
         # Return full profile data
         return {
             "eep": profile.eep,
-            "title": profile.title,
+            "title": profile.type_title,
             "description": profile.description,
-            "telegram": profile.telegram,
+            "telegram": getattr(profile, 'telegram', 'N/A'),
             "rorg_number": profile.rorg_number,
             "func_number": profile.func_number,
             "type_number": profile.type_number,

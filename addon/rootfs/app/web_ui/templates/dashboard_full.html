@@ -433,6 +433,7 @@
                 document.getElementById('deviceId').disabled = true;
                 document.getElementById('deviceName').value = device.name;
                 document.getElementById('deviceEEP').value = device.eep;
+                document.getElementById('deviceEEP').disabled = false; // Allow changing EEP in edit mode
                 document.getElementById('deviceManufacturer').value = device.manufacturer || 'EnOcean';
                 document.getElementById('deviceEnabled').checked = device.enabled !== false;
                 document.getElementById('deviceFormError').style.display = 'none';
