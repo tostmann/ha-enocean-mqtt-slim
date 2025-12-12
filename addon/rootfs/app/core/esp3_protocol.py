@@ -200,6 +200,56 @@ class ESP3Packet:
         """Create packet to read version info"""
         return cls.create_common_command(cls.CO_RD_VERSION)
     
+    @classmethod
+    def create_teach_in_response(cls, device_id: str, eep_func: int, eep_type: int, manufacturer_id: int = 0x7FF) -> 'ESP3Packet':
+        """
+        Create a UTE teach-in response packet
+        
+        Args:
+            device_id: Device ID as hex string (e.g., '05834fa4')
+            eep_func: EEP FUNC value (6 bits)
+            eep_type: EEP TYPE value (7 bits)
+            manufacturer_id: Manufacturer ID (11 bits, default 0x7FF = not specified)
+        
+        Returns:
+            ESP3Packet with teach-in response
+        """
+        packet = cls()
+        packet.packet_type = cls.PACKET_TYPE_RADIO_ERP1
+        
+        # Convert device ID to bytes
+        device_id_bytes = bytes.fromhex(device_id)
+        
+        # Build teach-in response data (4BS format)
+        # DB3: FUNC (6 bits) + TYPE high (2 bits)
+        db3 = (eep_func << 2) | ((eep_type >> 5) & 0x03)
+        
+        # DB2: TYPE low (5 bits) + MANUF high (3 bits)
+        db2 = ((eep_type & 0x1F) << 3) | ((manufacturer_id >> 8) & 0x07)
+        
+        # DB1: MANUF low (8 bits)
+        db1 = manufacturer_id & 0xFF
+        
+        # DB0: Response bits
+        # Bit 7: EEP teach-in response (1)
+        # Bit 6-4: Response code (0 = teach-in accepted)
+        # Bit 3: LRN bit (1 = data telegram)
+        # Bit 2-0: Reserved
+        db0 = 0x88  # 10001000 = Response accepted, LRN=1
+        
+        # Build data: RORG + DB3 + DB2 + DB1 + DB0 + Sender ID + Status
+        rorg = 0xA5  # 4BS
+        status = 0x00  # No special status
+        
+        packet.data = bytes([rorg, db3, db2, db1, db0]) + device_id_bytes + bytes([status])
+        packet.data_length = len(packet.data)
+        
+        # Optional data (empty for now)
+        packet.optional_length = 0
+        packet.optional_data = b''
+        
+        return packet
+    
     def __repr__(self) -> str:
         return (f"ESP3Packet(type={hex(self.packet_type)}, "
                 f"data_len={self.data_length}, "

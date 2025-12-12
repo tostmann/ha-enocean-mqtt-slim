@@ -235,6 +235,25 @@ class EnOceanMQTTService:
                 existing_device = self.device_manager.get_device(sender_id)
                 if existing_device:
                     logger.warning(f"   ℹ️  Device {sender_id} already configured as '{existing_device['name']}'")
+                    
+                    # Send teach-in response to confirm and exit teach-in mode
+                    if detected_eep and rorg == 0xA5:
+                        logger.warning(f"   📤 Sending teach-in response to device...")
+                        try:
+                            # Extract FUNC and TYPE from detected EEP
+                            eep_parts = detected_eep.split('-')
+                            if len(eep_parts) == 3:
+                                func = int(eep_parts[1], 16)
+                                type_val = int(eep_parts[2], 16)
+                                
+                                # Create and send teach-in response
+                                response = ESP3Packet.create_teach_in_response(sender_id, func, type_val)
+                                if self.serial_handler:
+                                    await self.serial_handler.write_packet(response)
+                                    logger.warning(f"   ✅ Teach-in response sent! Device should exit learn mode.")
+                        except Exception as e:
+                            logger.error(f"   ❌ Failed to send teach-in response: {e}")
+                    
                     logger.warning("=" * 80)
                     return
                 
@@ -262,6 +281,24 @@ class EnOceanMQTTService:
                         if device:
                             await self.publish_device_discovery(device)
                             logger.warning(f"   ✅ MQTT discovery published!")
+                        
+                        # Send teach-in response to confirm and exit teach-in mode
+                        if rorg == 0xA5:
+                            logger.warning(f"   📤 Sending teach-in response to device...")
+                            try:
+                                # Extract FUNC and TYPE from detected EEP
+                                eep_parts = detected_eep.split('-')
+                                if len(eep_parts) == 3:
+                                    func = int(eep_parts[1], 16)
+                                    type_val = int(eep_parts[2], 16)
+                                    
+                                    # Create and send teach-in response
+                                    response = ESP3Packet.create_teach_in_response(sender_id, func, type_val)
+                                    if self.serial_handler:
+                                        await self.serial_handler.write_packet(response)
+                                        logger.warning(f"   ✅ Teach-in response sent! Device should exit learn mode.")
+                            except Exception as e:
+                                logger.error(f"   ❌ Failed to send teach-in response: {e}")
                         
                         logger.warning("")
                         logger.warning(f"   🎉 Device '{device_name}' is now ready to use!")
