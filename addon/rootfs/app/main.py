@@ -11,6 +11,8 @@ from core.serial_handler import SerialHandler
 from core.esp3_protocol import ESP3Packet
 from eep.loader import EEPLoader
 from eep.parser import EEPParser
+from web_ui.app import app as web_app
+import uvicorn
 
 # Configure logging
 log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
@@ -127,6 +129,28 @@ class EnOceanMQTTService:
         except Exception as e:
             logger.error(f"Error processing telegram: {e}")
     
+    async def run_serial_reader(self):
+        """Run serial reader task"""
+        if self.serial_handler:
+            logger.info("Listening for EnOcean telegrams...")
+            try:
+                await self.serial_handler.start_reading(self.process_telegram)
+            except Exception as e:
+                logger.error(f"Error in serial reader: {e}")
+    
+    async def run_web_server(self):
+        """Run web server task"""
+        logger.info("Starting web UI on port 8099...")
+        config = uvicorn.Config(
+            web_app,
+            host="0.0.0.0",
+            port=8099,
+            log_level="warning",
+            access_log=False
+        )
+        server = uvicorn.Server(config)
+        await server.serve()
+    
     async def run(self):
         """Main run loop"""
         self.running = True
@@ -136,27 +160,24 @@ class EnOceanMQTTService:
             return
         
         logger.info("Service is running...")
-        logger.info("Press Ctrl+C to stop")
+        logger.info("Web UI available via Home Assistant ingress")
         
-        # Start serial reading if available
+        # Run web server and serial reader concurrently
+        tasks = [
+            asyncio.create_task(self.run_web_server()),
+        ]
+        
         if self.serial_handler:
-            logger.info("Listening for EnOcean telegrams...")
-            try:
-                await self.serial_handler.start_reading(self.process_telegram)
-            except KeyboardInterrupt:
-                logger.info("Received shutdown signal")
-            except Exception as e:
-                logger.error(f"Error in main loop: {e}")
-        else:
-            # No serial port, just keep running
-            logger.info("No serial port - web UI only mode")
-            try:
-                while self.running:
-                    await asyncio.sleep(1)
-            except KeyboardInterrupt:
-                logger.info("Received shutdown signal")
+            tasks.append(asyncio.create_task(self.run_serial_reader()))
         
-        await self.shutdown()
+        try:
+            await asyncio.gather(*tasks)
+        except KeyboardInterrupt:
+            logger.info("Received shutdown signal")
+        except Exception as e:
+            logger.error(f"Error in main loop: {e}")
+        finally:
+            await self.shutdown()
     
     async def shutdown(self):
         """Shutdown service"""
