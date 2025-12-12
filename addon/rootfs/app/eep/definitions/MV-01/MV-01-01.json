@@ -1,0 +1,40 @@
+{
+  "eep": "MV-01-01",
+  "rorg_number": "0xA5",
+  "telegram": "4BS",
+  "func_number": "0x01",
+  "type_number": "0x01",
+  "type_title": "Kessel Staufix Control",
+  "manufacturer": "Kessel",
+  "description": "Backwater alarm system for sewage monitoring",
+  "bidirectional": false,
+  "objects": {
+    "AL": {
+      "name": "Alarm",
+      "component": "binary_sensor",
+      "device_class": "problem",
+      "icon": "mdi:pipe-valve",
+      "description": "Backwater alarm status"
+    }
+  },
+  "case": [
+    {
+      "send": false,
+      "condition": {
+        "bitoffs": 0,
+        "bitsize": 8,
+        "value": 1
+      },
+      "datafield": [
+        {
+          "data": "Alarm",
+          "shortcut": "AL",
+          "bitoffs": 29,
+          "bitsize": 1,
+          "description": "Alarm state: 0=water detected (alarm), 1=no water (normal)",
+          "invert": true
+        }
+      ]
+    }
+  ]
+}
