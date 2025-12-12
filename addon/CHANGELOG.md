@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.5] - 2025-12-12
+
+### Fixed
+- **Complete JSON Response Fix** - Removed ALL JSONResponse wrappers
+- Fixed POST/PUT/DELETE endpoints that were still using JSONResponse
+- Removed unused JSONResponse import
+- All endpoints now return plain Python dicts (FastAPI handles JSON conversion automatically)
+
+### Technical Changes
+- Removed JSONResponse from all API endpoints
+- Simplified response handling throughout the application
+- Better consistency across all endpoints
+
 ## [1.0.4] - 2025-12-12
 
 ### Fixed

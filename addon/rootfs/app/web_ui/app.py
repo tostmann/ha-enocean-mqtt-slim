@@ -4,7 +4,7 @@ FastAPI-based web interface for device management
 """
 import logging
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
 from pydantic import BaseModel
@@ -166,7 +166,7 @@ async def create_device(device: DeviceCreate):
         except Exception as e:
             logger.error(f"Error publishing discovery: {e}")
     
-    return JSONResponse(content={"success": True, "device_id": device.id})
+    return {"success": True, "device_id": device.id}
 
 
 @app.get("/api/devices/{device_id}")
@@ -180,7 +180,7 @@ async def get_device(device_id: str):
     if not device:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    return JSONResponse(content=device)
+    return device
 
 
 @app.put("/api/devices/{device_id}")
@@ -211,7 +211,7 @@ async def update_device(device_id: str, update: DeviceUpdate):
     device_manager.devices[device_id] = device
     device_manager.save_devices()
     
-    return JSONResponse(content={"success": True})
+    return {"success": True}
 
 
 @app.delete("/api/devices/{device_id}")
@@ -242,7 +242,7 @@ async def delete_device(device_id: str):
     if not success:
         raise HTTPException(status_code=500, detail="Failed to remove device")
     
-    return JSONResponse(content={"success": True})
+    return {"success": True}
 
 
 @app.post("/api/devices/{device_id}/enable")
@@ -256,7 +256,7 @@ async def enable_device(device_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    return JSONResponse(content={"success": True})
+    return {"success": True}
 
 
 @app.post("/api/devices/{device_id}/disable")
@@ -270,4 +270,4 @@ async def disable_device(device_id: str):
     if not success:
         raise HTTPException(status_code=404, detail="Device not found")
     
-    return JSONResponse(content={"success": True})
+    return {"success": True}
