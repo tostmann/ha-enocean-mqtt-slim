@@ -59,44 +59,75 @@ async def health():
 @app.get("/api/status")
 async def get_status():
     """Get service status"""
-    status = service_state.get_status()
-    return JSONResponse(content=status)
+    try:
+        status = service_state.get_status()
+        return status
+    except Exception as e:
+        logger.error(f"Error getting status: {e}", exc_info=True)
+        return {
+            "status": "error",
+            "eep_profiles": 0,
+            "devices": 0,
+            "gateway_connected": False,
+            "mqtt_connected": False
+        }
 
 
 @app.get("/api/gateway-info")
 async def get_gateway_info():
     """Get gateway information"""
-    gateway_info = service_state.get_gateway_info()
-    if not gateway_info:
-        return JSONResponse(content={
-            "base_id": "Not available",
-            "version": "Not available",
-            "chip_id": "Not available",
-            "description": "Gateway not connected"
-        })
-    return JSONResponse(content=gateway_info)
+    try:
+        gateway_info = service_state.get_gateway_info()
+        if not gateway_info:
+            return {
+                "base_id": "Not available",
+                "version": "Not available",
+                "chip_id": "Not available",
+                "description": "Gateway not connected"
+            }
+        return gateway_info
+    except Exception as e:
+        logger.error(f"Error getting gateway info: {e}", exc_info=True)
+        return {
+            "base_id": "Error",
+            "version": "Error",
+            "chip_id": "Error",
+            "description": str(e)
+        }
 
 
 @app.get("/api/eep-profiles")
 async def get_eep_profiles():
     """Get list of available EEP profiles"""
-    eep_loader = service_state.get_eep_loader()
-    if not eep_loader:
-        return JSONResponse(content={"profiles": []})
-    
-    profiles = eep_loader.list_profiles()
-    return JSONResponse(content={"profiles": profiles})
+    try:
+        eep_loader = service_state.get_eep_loader()
+        if not eep_loader:
+            logger.warning("EEP loader not available yet")
+            return {"profiles": []}
+        
+        profiles = eep_loader.list_profiles()
+        logger.debug(f"Returning {len(profiles)} EEP profiles")
+        return {"profiles": profiles}
+    except Exception as e:
+        logger.error(f"Error getting EEP profiles: {e}", exc_info=True)
+        return {"profiles": []}
 
 
 @app.get("/api/devices")
 async def get_devices():
     """Get list of configured devices"""
-    device_manager = service_state.get_device_manager()
-    if not device_manager:
-        return JSONResponse(content={"devices": []})
-    
-    devices = device_manager.list_devices()
-    return JSONResponse(content={"devices": devices})
+    try:
+        device_manager = service_state.get_device_manager()
+        if not device_manager:
+            logger.warning("Device manager not available yet")
+            return {"devices": []}
+        
+        devices = device_manager.list_devices()
+        logger.debug(f"Returning {len(devices)} devices")
+        return {"devices": devices}
+    except Exception as e:
+        logger.error(f"Error getting devices: {e}", exc_info=True)
+        return {"devices": []}
 
 
 @app.post("/api/devices")
