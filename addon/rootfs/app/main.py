@@ -185,12 +185,86 @@ class EnOceanMQTTService:
                 logger.warning(f"   RORG: {hex(rorg)}")
                 logger.warning(f"   RSSI: {rssi} dBm")
                 logger.warning(f"   Data: {data_hex}")
-                logger.warning("")
-                logger.warning("   To add this device:")
-                logger.warning(f"   1. Go to Web UI")
-                logger.warning(f"   2. Click 'Add Device'")
-                logger.warning(f"   3. Enter Device ID: {sender_id}")
-                logger.warning(f"   4. Select appropriate EEP profile")
+                
+                # Try to auto-detect EEP profile from teach-in telegram
+                detected_eep = None
+                device_name = f"Device {sender_id}"
+                
+                # For 4BS (A5) teach-in telegrams with EEP
+                if rorg == 0xA5 and len(packet.data) >= 5:
+                    # 4BS teach-in telegram format:
+                    # DB3.7-DB3.0: FUNC (6 bits) + TYPE (7 bits) + ...
+                    # Check if it's UTE (Universal Teach-In)
+                    db3 = packet.data[1]
+                    db2 = packet.data[2]
+                    db1 = packet.data[3]
+                    db0 = packet.data[4]
+                    
+                    # Check LRN bit (DB0.3) - 0 = teach-in
+                    lrn_bit = (db0 >> 3) & 0x01
+                    if lrn_bit == 0:
+                        # Extract FUNC and TYPE from teach-in
+                        func = (db3 >> 2) & 0x3F  # 6 bits
+                        type_val = ((db3 & 0x03) << 5) | ((db2 >> 3) & 0x1F)  # 7 bits
+                        
+                        # Construct EEP code
+                        detected_eep = f"A5-{func:02X}-{type_val:02X}"
+                        logger.warning(f"   📋 Detected EEP: {detected_eep}")
+                        
+                        # Try to find matching profile
+                        profile = self.eep_loader.get_profile(detected_eep)
+                        if profile:
+                            device_name = profile.type_title
+                            logger.warning(f"   ✅ Found profile: {device_name}")
+                        else:
+                            logger.warning(f"   ⚠️  Profile {detected_eep} not in database")
+                
+                # Check if device already exists
+                existing_device = self.device_manager.get_device(sender_id)
+                if existing_device:
+                    logger.warning(f"   ℹ️  Device {sender_id} already configured as '{existing_device['name']}'")
+                    logger.warning("=" * 80)
+                    return
+                
+                # Auto-add device if EEP detected
+                if detected_eep:
+                    logger.warning("")
+                    logger.warning(f"   🤖 AUTO-ADDING DEVICE...")
+                    logger.warning(f"   Device ID: {sender_id}")
+                    logger.warning(f"   Name: {device_name}")
+                    logger.warning(f"   EEP: {detected_eep}")
+                    
+                    # Add device
+                    success = self.device_manager.add_device(
+                        sender_id,
+                        device_name,
+                        detected_eep,
+                        "EnOcean"
+                    )
+                    
+                    if success:
+                        logger.warning(f"   ✅ Device added successfully!")
+                        
+                        # Publish MQTT discovery
+                        device = self.device_manager.get_device(sender_id)
+                        if device:
+                            await self.publish_device_discovery(device)
+                            logger.warning(f"   ✅ MQTT discovery published!")
+                        
+                        logger.warning("")
+                        logger.warning(f"   🎉 Device '{device_name}' is now ready to use!")
+                        logger.warning(f"   Check Home Assistant for new entities.")
+                    else:
+                        logger.warning(f"   ❌ Failed to add device")
+                else:
+                    logger.warning("")
+                    logger.warning("   ⚠️  Could not auto-detect EEP profile")
+                    logger.warning("   Manual configuration required:")
+                    logger.warning(f"   1. Go to Web UI")
+                    logger.warning(f"   2. Click 'Add Device'")
+                    logger.warning(f"   3. Enter Device ID: {sender_id}")
+                    logger.warning(f"   4. Select appropriate EEP profile")
+                
                 logger.warning("=" * 80)
                 return
             
