@@ -13,8 +13,10 @@ from core.mqtt_handler import MQTTHandler
 from core.device_manager import DeviceManager
 from eep.loader import EEPLoader
 from eep.parser import EEPParser
-from web_ui.app import app as web_app
+from service_state import service_state
 import uvicorn
+# Import web app after service_state to ensure proper initialization
+from web_ui.app import app as web_app
 
 # Configure logging
 log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
@@ -238,9 +240,27 @@ class EnOceanMQTTService:
         """Main run loop"""
         self.running = True
         
+        # Register service with state manager for web UI access
+        service_state.set_service(self)
+        
         if not await self.initialize():
             logger.error("Initialization failed, exiting")
             return
+        
+        # Store gateway info if available
+        if self.serial_handler:
+            try:
+                base_id = await self.serial_handler.get_base_id()
+                version_info = await self.serial_handler.get_version_info()
+                if base_id and version_info:
+                    service_state.set_gateway_info({
+                        "base_id": base_id,
+                        "version": version_info.get('app_version', 'Unknown'),
+                        "chip_id": version_info.get('chip_id', 'Unknown'),
+                        "description": version_info.get('app_description', 'Unknown')
+                    })
+            except Exception as e:
+                logger.error(f"Error storing gateway info: {e}")
         
         logger.info("Service is running...")
         logger.info("Web UI available via Home Assistant ingress")
