@@ -34,7 +34,7 @@
                 <i class="bi bi-radio-tower"></i> EnOcean MQTT Slim
             </span>
             <div>
-                <span class="badge bg-light text-dark me-2">v1.0.12</span>
+                <span class="badge bg-light text-dark me-2">v1.0.13</span>
                 <span class="badge bg-success" id="status-badge">Running</span>
             </div>
         </div>
@@ -201,19 +201,50 @@
 
     <!-- EEP Profiles Modal -->
     <div class="modal fade" id="eepModal" tabindex="-1">
-        <div class="modal-dialog modal-lg">
+        <div class="modal-dialog modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-file-earmark-code"></i> EEP Profiles</h5>
+                    <h5 class="modal-title"><i class="bi bi-file-earmark-code"></i> EEP Profiles (152)</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="eep-list-container">
+                    <!-- Search Bar -->
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="eep-search" placeholder="Search profiles by EEP code, title, or description...">
+                            <button class="btn btn-outline-secondary" onclick="clearEEPSearch()">
+                                <i class="bi bi-x-lg"></i> Clear
+                            </button>
+                        </div>
+                        <small class="text-muted">Examples: A5-02, temperature, humidity, switch</small>
+                    </div>
+                    
+                    <!-- Profile List -->
+                    <div id="eep-list-container" style="max-height: 500px; overflow-y: auto;">
                         <div class="text-center">
                             <div class="spinner-border text-primary" role="status"></div>
                             <p class="mt-2">Loading profiles...</p>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Detail Modal -->
+    <div class="modal fade" id="profileDetailModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="profileDetailTitle">Profile Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="profile-detail-content"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                 </div>
             </div>
         </div>
@@ -532,29 +563,202 @@
             }
         }
 
+        let allProfiles = [];
+        let profileDetailModal;
+
         async function showEEPProfiles() {
             try {
                 const response = await fetch('api/eep-profiles');
                 const data = await response.json();
-                const profiles = data.profiles || [];
+                allProfiles = data.profiles || [];
                 
-                let html = '<div class="list-group">';
-                profiles.forEach(profile => {
-                    html += `
-                        <div class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1"><span class="badge bg-info">${profile.eep}</span> ${profile.title}</h6>
-                            </div>
-                            <p class="mb-1 small text-muted">${profile.description || 'No description available'}</p>
-                        </div>
-                    `;
-                });
-                html += '</div>';
+                // Initialize profile detail modal if not done
+                if (!profileDetailModal) {
+                    profileDetailModal = new bootstrap.Modal(document.getElementById('profileDetailModal'));
+                }
                 
-                document.getElementById('eep-list-container').innerHTML = html;
+                // Setup search listener
+                const searchInput = document.getElementById('eep-search');
+                searchInput.value = '';
+                searchInput.removeEventListener('input', filterProfiles);
+                searchInput.addEventListener('input', filterProfiles);
+                
+                renderProfiles(allProfiles);
                 eepModal.show();
             } catch (error) {
                 alert('Error loading EEP profiles: ' + error.message);
+            }
+        }
+
+        function renderProfiles(profiles) {
+            const container = document.getElementById('eep-list-container');
+            
+            if (profiles.length === 0) {
+                container.innerHTML = `
+                    <div class="alert alert-warning">
+                        <i class="bi bi-search"></i> No profiles found matching your search.
+                    </div>
+                `;
+                return;
+            }
+            
+            // Group by family
+            const families = {};
+            profiles.forEach(profile => {
+                const family = profile.eep.split('-')[0];
+                if (!families[family]) {
+                    families[family] = [];
+                }
+                families[family].push(profile);
+            });
+            
+            let html = '';
+            Object.keys(families).sort().forEach(family => {
+                html += `
+                    <div class="mb-3">
+                        <h6 class="text-primary"><i class="bi bi-folder"></i> ${family} Family (${families[family].length} profiles)</h6>
+                        <div class="list-group">
+                `;
+                
+                families[family].forEach(profile => {
+                    html += `
+                        <div class="list-group-item list-group-item-action" onclick="showProfileDetail('${profile.eep}')" style="cursor: pointer;">
+                            <div class="d-flex w-100 justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">
+                                        <span class="badge bg-info">${profile.eep}</span> 
+                                        ${profile.title}
+                                    </h6>
+                                    <p class="mb-0 small text-muted">${profile.description || 'No description available'}</p>
+                                </div>
+                                <i class="bi bi-chevron-right"></i>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+
+        function filterProfiles() {
+            const searchTerm = document.getElementById('eep-search').value.toLowerCase();
+            
+            if (!searchTerm) {
+                renderProfiles(allProfiles);
+                return;
+            }
+            
+            const filtered = allProfiles.filter(profile => {
+                return profile.eep.toLowerCase().includes(searchTerm) ||
+                       profile.title.toLowerCase().includes(searchTerm) ||
+                       (profile.description && profile.description.toLowerCase().includes(searchTerm));
+            });
+            
+            renderProfiles(filtered);
+        }
+
+        function clearEEPSearch() {
+            document.getElementById('eep-search').value = '';
+            renderProfiles(allProfiles);
+        }
+
+        async function showProfileDetail(eepCode) {
+            try {
+                const response = await fetch(`api/eep-profiles/${eepCode}`);
+                const profile = await response.json();
+                
+                document.getElementById('profileDetailTitle').innerHTML = `
+                    <i class="bi bi-file-earmark-code"></i> ${profile.eep} - ${profile.title}
+                `;
+                
+                let html = `
+                    <div class="card mb-3">
+                        <div class="card-header bg-primary text-white">
+                            <h6 class="mb-0"><i class="bi bi-info-circle"></i> Profile Information</h6>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr><th width="30%">EEP Code:</th><td><code>${profile.eep}</code></td></tr>
+                                <tr><th>Title:</th><td>${profile.title}</td></tr>
+                                <tr><th>Description:</th><td>${profile.description || 'N/A'}</td></tr>
+                                <tr><th>Telegram Type:</th><td><span class="badge bg-secondary">${profile.telegram || 'N/A'}</span></td></tr>
+                                <tr><th>RORG:</th><td><code>${profile.rorg_number || 'N/A'}</code></td></tr>
+                                <tr><th>Manufacturer:</th><td>${profile.manufacturer || 'Generic'}</td></tr>
+                                <tr><th>Bidirectional:</th><td>${profile.bidirectional ? 'Yes' : 'No'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                
+                // Show entities/objects
+                if (profile.objects && Object.keys(profile.objects).length > 0) {
+                    html += `
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0"><i class="bi bi-list-check"></i> Entities (${Object.keys(profile.objects).length})</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Shortcut</th>
+                                                <th>Name</th>
+                                                <th>Component</th>
+                                                <th>Device Class</th>
+                                                <th>Unit</th>
+                                                <th>Icon</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                    `;
+                    
+                    Object.keys(profile.objects).forEach(key => {
+                        const obj = profile.objects[key];
+                        html += `
+                            <tr>
+                                <td><code>${key}</code></td>
+                                <td>${obj.name}</td>
+                                <td><span class="badge bg-info">${obj.component || 'sensor'}</span></td>
+                                <td>${obj.device_class || '-'}</td>
+                                <td>${obj.unit || '-'}</td>
+                                <td><i class="${obj.icon || 'mdi:help'}"></i></td>
+                            </tr>
+                        `;
+                    });
+                    
+                    html += `
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Show raw JSON
+                html += `
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h6 class="mb-0"><i class="bi bi-code-square"></i> Raw JSON</h6>
+                        </div>
+                        <div class="card-body">
+                            <pre class="bg-light p-3" style="max-height: 300px; overflow-y: auto;"><code>${JSON.stringify(profile, null, 2)}</code></pre>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('profile-detail-content').innerHTML = html;
+                profileDetailModal.show();
+                
+            } catch (error) {
+                alert('Error loading profile details: ' + error.message);
             }
         }
 

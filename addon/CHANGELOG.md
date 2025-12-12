@@ -1,5 +1,40 @@
 # Changelog
 
+## [1.0.13] - 2025-12-12
+
+### Added
+- **EEP Profile Search** - Search through 152 profiles by code, title, or description
+- **Profile Detail Viewer** - Click any profile to view complete details
+- **Profile Browser** - Profiles grouped by family with expandable sections
+- Real-time search filtering as you type
+- Clear search button for quick reset
+
+### Profile Viewer Features
+- Complete profile information display
+- Entity/sensor list with device classes and units
+- Raw JSON view for technical details
+- Profile metadata (RORG, telegram type, manufacturer)
+- Bidirectional support indicator
+
+### UI Improvements
+- Extra-large modal for profile browsing
+- Organized by profile families (A5-02, D2-01, etc.)
+- Click-through navigation from list to details
+- Responsive design for all screen sizes
+- Search examples provided
+
+### API
+- New endpoint: GET /api/eep-profiles/{eep_code}
+- Returns complete profile data including objects and datafields
+- Proper error handling for missing profiles
+
+### User Experience
+- No more scrolling through 152 profiles manually
+- Quick search: "temperature", "switch", "A5-02", etc.
+- Instant results as you type
+- Profile families show count of profiles
+- Easy to find the right profile for your device
+
 ## [1.0.12] - 2025-12-12
 
 ### Added

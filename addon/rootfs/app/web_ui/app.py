@@ -124,6 +124,40 @@ async def get_eep_profiles():
         return {"profiles": []}
 
 
+@app.get("/api/eep-profiles/{eep_code}")
+async def get_eep_profile(eep_code: str):
+    """Get detailed information about a specific EEP profile"""
+    logger.info(f"=== API /api/eep-profiles/{eep_code} called ===")
+    try:
+        eep_loader = service_state.get_eep_loader()
+        if not eep_loader:
+            raise HTTPException(status_code=503, detail="EEP loader not available")
+        
+        profile = eep_loader.get_profile(eep_code)
+        if not profile:
+            raise HTTPException(status_code=404, detail=f"EEP profile {eep_code} not found")
+        
+        # Return full profile data
+        return {
+            "eep": profile.eep,
+            "title": profile.title,
+            "description": profile.description,
+            "telegram": profile.telegram,
+            "rorg_number": profile.rorg_number,
+            "func_number": profile.func_number,
+            "type_number": profile.type_number,
+            "manufacturer": profile.manufacturer,
+            "bidirectional": profile.bidirectional,
+            "objects": profile.objects,
+            "case": profile.case
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting EEP profile {eep_code}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/api/devices")
 async def get_devices():
     """Get list of configured devices"""
