@@ -1,5 +1,25 @@
 # Changelog
 
+## [1.0.9] - 2025-12-12
+
+### Fixed
+- **Device Action Buttons** - Fixed Edit, Pause/Enable, and Delete buttons using absolute paths
+- All device action buttons now use relative paths and work correctly through ingress
+- Fixed fetch calls for: edit device, toggle enable/disable, delete device
+
+### Added
+- **Auto-Detect Feature** - Replaced yellow "Add Device" card with "Auto-Detect" functionality
+- Click Auto-Detect card to start listening for EnOcean teach-in telegrams (60 seconds)
+- Visual countdown timer shows remaining time
+- Click again to stop early
+- Detected devices appear in addon logs
+- Keeps blue "Add Device" button in device list header
+
+### Improved
+- Cleaner UI with only one "Add Device" button (blue button in header)
+- Auto-Detect card provides teach-in functionality like other integrations
+- Better user experience for adding new devices
+
 ## [1.0.8] - 2025-12-12
 
 ### Fixed

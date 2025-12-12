@@ -34,7 +34,7 @@
                 <i class="bi bi-radio-tower"></i> EnOcean MQTT Slim
             </span>
             <div>
-                <span class="badge bg-light text-dark me-2">v1.0.8</span>
+                <span class="badge bg-light text-dark me-2">v1.0.9</span>
                 <span class="badge bg-success" id="status-badge">Running</span>
             </div>
         </div>
@@ -93,11 +93,11 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="card card-stat text-center" onclick="showAddDeviceModal()">
+                <div class="card card-stat text-center" onclick="startAutoDetect()">
                     <div class="card-body">
-                        <i class="bi bi-plus-circle display-4 text-warning"></i>
-                        <h6 class="mt-2">Add Device</h6>
-                        <small class="text-muted">Click to add</small>
+                        <i class="bi bi-radar display-4 text-success"></i>
+                        <h6 class="mt-2">Auto-Detect</h6>
+                        <small class="text-muted" id="autodetect-status">Click to start</small>
                     </div>
                 </div>
             </div>
@@ -393,7 +393,7 @@
 
         async function editDevice(deviceId) {
             try {
-                const response = await fetch(`/api/devices/${deviceId}`);
+                const response = await fetch(`api/devices/${deviceId}`);
                 const device = await response.json();
                 
                 currentEditingDevice = deviceId;
@@ -436,7 +436,7 @@
                 let response;
                 if (currentEditingDevice) {
                     // Update existing device
-                    response = await fetch(`/api/devices/${currentEditingDevice}`, {
+                    response = await fetch(`api/devices/${currentEditingDevice}`, {
                         method: 'PUT',
                         headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
@@ -482,7 +482,7 @@
         async function toggleDevice(deviceId, enable) {
             try {
                 const endpoint = enable ? 'enable' : 'disable';
-                const response = await fetch(`/api/devices/${deviceId}/${endpoint}`, {
+                const response = await fetch(`api/devices/${deviceId}/${endpoint}`, {
                     method: 'POST'
                 });
                 
@@ -502,7 +502,7 @@
             }
             
             try {
-                const response = await fetch(`/api/devices/${deviceId}`, {
+                const response = await fetch(`api/devices/${deviceId}`, {
                     method: 'DELETE'
                 });
                 
@@ -556,6 +556,53 @@
             } catch (error) {
                 alert('Error loading EEP profiles: ' + error.message);
             }
+        }
+
+        let autoDetectInterval = null;
+        let autoDetectTimeout = null;
+
+        function startAutoDetect() {
+            const statusEl = document.getElementById('autodetect-status');
+            
+            if (autoDetectInterval) {
+                // Stop auto-detect
+                clearInterval(autoDetectInterval);
+                clearTimeout(autoDetectTimeout);
+                autoDetectInterval = null;
+                autoDetectTimeout = null;
+                statusEl.textContent = 'Click to start';
+                statusEl.className = 'text-muted';
+                return;
+            }
+            
+            // Start auto-detect for 60 seconds
+            statusEl.textContent = 'Listening... (60s)';
+            statusEl.className = 'text-success fw-bold';
+            
+            let secondsLeft = 60;
+            autoDetectInterval = setInterval(() => {
+                secondsLeft--;
+                statusEl.textContent = `Listening... (${secondsLeft}s)`;
+                if (secondsLeft <= 0) {
+                    clearInterval(autoDetectInterval);
+                    autoDetectInterval = null;
+                    statusEl.textContent = 'Click to start';
+                    statusEl.className = 'text-muted';
+                }
+            }, 1000);
+            
+            // Auto-stop after 60 seconds
+            autoDetectTimeout = setTimeout(() => {
+                if (autoDetectInterval) {
+                    clearInterval(autoDetectInterval);
+                    autoDetectInterval = null;
+                }
+                statusEl.textContent = 'Click to start';
+                statusEl.className = 'text-muted';
+                alert('Auto-detect completed. Check the addon logs for detected devices.');
+            }, 60000);
+            
+            alert('Auto-detect started!\n\nPress the teach-in button on your EnOcean devices now.\nDetected devices will appear in the addon logs.\n\nClick the Auto-Detect card again to stop early.');
         }
     </script>
 </body>
