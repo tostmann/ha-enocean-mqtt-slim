@@ -106,6 +106,8 @@ class MQTTHandler:
                 "unique_id": unique_id,
                 "state_topic": f"enocean/{device_id}/state",
                 "availability_topic": f"enocean/{device_id}/availability",
+                "payload_available": "online",
+                "payload_not_available": "offline",
                 "device": {
                     "identifiers": [f"enocean_{device_id}"],
                     "name": device['name'],
