@@ -146,11 +146,18 @@ class MQTTHandler:
                     payload['state_off'] = 0
                     payload['optimistic'] = False
                     # Add brightness support if entity supports it
-                    if 'brightness' in entity.get('name', '').lower():
+                    if 'brightness' in entity.get('name', '').lower() or 'dim' in entity.get('name', '').lower():
                         payload['brightness_command_topic'] = command_topic
                         payload['brightness_scale'] = 255
                         payload['brightness_state_topic'] = f"enocean/{device_id}/state"
                         payload['brightness_value_template'] = f"{{{{ value_json.{entity_shortcut} }}}}"
+                    # Add RGB support for RGB lights
+                    if 'rgb' in entity.get('name', '').lower() or 'color' in entity.get('name', '').lower():
+                        payload['rgb_command_topic'] = command_topic
+                        payload['rgb_state_topic'] = f"enocean/{device_id}/state"
+                        payload['rgb_value_template'] = f"{{{{ value_json.rgb }}}}"
+                        payload['color_mode'] = True
+                        payload['supported_color_modes'] = ['rgb']
                 elif component == 'cover':
                     payload['position_topic'] = f"enocean/{device_id}/state"
                     payload['set_position_topic'] = command_topic

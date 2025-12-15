@@ -87,6 +87,41 @@ class CommandTranslator:
         logger.warning(f"Dim command not supported for EEP {eep}")
         return None
     
+    def translate_rgb_command(self, device: Dict[str, Any], red: int, green: int, blue: int) -> Optional[Tuple[int, bytes]]:
+        """
+        Translate RGB color command to EnOcean telegram
+        
+        Args:
+            device: Device dictionary with 'eep' key
+            red: Red value 0-255
+            green: Green value 0-255
+            blue: Blue value 0-255
+            
+        Returns:
+            Tuple of (rorg, data_bytes) or None if not supported
+        """
+        eep = device.get('eep', '')
+        
+        # A5-38-08: Central Command (Gateway) - RGB extension
+        if eep == 'A5-38-08':
+            # DB3: Command ID (0x07 = RGB Color)
+            # DB2: Red (0-255)
+            # DB1: Green (0-255)
+            # DB0: Blue (0-255)
+            data_bytes = bytes([0x07, red, green, blue])
+            return (0xA5, data_bytes)
+        
+        # D2-01-12: Electronic switch with RGB support
+        elif eep == 'D2-01-12':
+            # VLD telegram for RGB
+            # This is a simplified implementation
+            logger.warning(f"RGB command for {eep} using simplified format")
+            data_bytes = bytes([0x07, red, green, blue])
+            return (0xD2, data_bytes)
+        
+        logger.warning(f"RGB command not supported for EEP {eep}")
+        return None
+    
     def translate_cover_command(self, device: Dict[str, Any], position: int) -> Optional[Tuple[int, bytes]]:
         """
         Translate cover position command to EnOcean telegram

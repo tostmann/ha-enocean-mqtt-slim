@@ -557,6 +557,11 @@ class EnOceanMQTTService:
                         state_update[entity] = command['brightness']
                     elif 'position' in command:
                         state_update[entity] = command['position']
+                    elif 'rgb' in command:
+                        # RGB color command
+                        rgb = command['rgb']
+                        state_update['rgb'] = rgb
+                        logger.info(f"   🎨 RGB color: {rgb}")
                     
                     if state_update:
                         self.mqtt_handler.publish_state(device_id, state_update, retain=True)
