@@ -308,14 +308,19 @@ class EnOceanMQTTService:
                             device_name = matching_profiles[0].type_title
                             logger.warning(f"   ✅ Exact match: {detected_eep} - {device_name}")
                         elif len(matching_profiles) > 1:
-                            # Multiple matches - log options
+                            # Multiple matches - require manual selection
                             logger.warning(f"   ⚠️  Multiple profiles match (FUNC={func:02X}, TYPE={type_val:02X}):")
                             for idx, prof in enumerate(matching_profiles, 1):
                                 logger.warning(f"      {idx}. {prof.eep} - {prof.type_title}")
-                            # Use first one as default
-                            detected_eep = matching_profiles[0].eep
-                            device_name = matching_profiles[0].type_title
-                            logger.warning(f"   → Using first match: {detected_eep}")
+                            logger.warning("")
+                            logger.warning("   ⚠️  MANUAL SELECTION REQUIRED:")
+                            logger.warning(f"      1. Go to Web UI")
+                            logger.warning(f"      2. Click 'Add Device'")
+                            logger.warning(f"      3. Enter Device ID: {sender_id}")
+                            logger.warning(f"      4. Select one of the {len(matching_profiles)} profiles listed above")
+                            logger.warning("")
+                            # Don't auto-add - require manual selection
+                            detected_eep = None
                         else:
                             # No match found
                             detected_eep = f"A5-{func:02X}-{type_val:02X}"
