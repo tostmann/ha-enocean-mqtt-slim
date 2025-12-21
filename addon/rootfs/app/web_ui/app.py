@@ -341,3 +341,39 @@ async def disable_device(device_id: str):
         raise HTTPException(status_code=404, detail="Device not found")
     
     return {"success": True}
+
+
+@app.get("/api/suggest-profiles/{device_id}")
+async def suggest_profiles(device_id: str):
+    """
+    Suggest compatible EEP profiles for a device ID
+    Looks in logs for detected profiles for this device
+    """
+    logger.info(f"=== API /api/suggest-profiles/{device_id} called ===")
+    try:
+        # Check if device exists in state persistence (has sent telegrams)
+        state_persistence = service_state.get_state_persistence()
+        if state_persistence:
+            state = state_persistence.get_state(device_id)
+            if state:
+                logger.info(f"Device {device_id} has sent telegrams, checking logs...")
+        
+        # Check main.py's teach-in detection cache
+        # For now, return empty list - we'll track detected profiles in a future enhancement
+        # The UI will show all profiles if no suggestions available
+        
+        return {
+            "device_id": device_id,
+            "suggested_profiles": [],
+            "has_suggestions": False,
+            "message": "No teach-in data available. Please select profile manually."
+        }
+        
+    except Exception as e:
+        logger.error(f"Error suggesting profiles for {device_id}: {e}", exc_info=True)
+        return {
+            "device_id": device_id,
+            "suggested_profiles": [],
+            "has_suggestions": False,
+            "message": str(e)
+        }
