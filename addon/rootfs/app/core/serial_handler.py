@@ -92,8 +92,12 @@ class SerialHandler:
                 if bytes_read % 100 == 0:
                     logger.info(f"   Read {bytes_read} bytes so far, still looking for sync...")
                 
-                # Log individual bytes in debug mode
-                logger.debug(f"   Read byte: 0x{byte[0]:02x}")
+                # Log ALL bytes received (not just debug)
+                logger.debug(f"Read byte: 0x{byte[0]:02x}")
+                
+                # Log non-sync bytes to help diagnose issues
+                if byte[0] != ESP3Packet.SYNC_BYTE:
+                    logger.info(f"   Received non-sync byte: 0x{byte[0]:02x} (looking for 0x55)")
                 
                 # Check if it's the sync byte
                 if byte[0] == ESP3Packet.SYNC_BYTE:
