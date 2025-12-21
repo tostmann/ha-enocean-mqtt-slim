@@ -373,6 +373,19 @@ async def suggest_profiles(device_id: str):
                             'manufacturer': profile.manufacturer
                         })
                 
+                # SPECIAL CASE: Add MV-01-01 (Kessel Staufix) if not already in list
+                # The Kessel Staufix sends FUNC=00,TYPE=00 teach-in but should use MV-01-01
+                if not any(p['eep'] == 'MV-01-01' for p in suggested_profiles):
+                    mv_profile = eep_loader.get_profile('MV-01-01')
+                    if mv_profile:
+                        suggested_profiles.insert(0, {  # Insert at beginning
+                            'eep': mv_profile.eep,
+                            'title': mv_profile.type_title,
+                            'description': mv_profile.description,
+                            'manufacturer': mv_profile.manufacturer
+                        })
+                        logger.info(f"Added MV-01-01 (Kessel Staufix) to suggestions for {device_id}")
+                
                 logger.info(f"Found {len(suggested_profiles)} suggested profiles for {device_id}")
                 return {
                     "device_id": device_id,
