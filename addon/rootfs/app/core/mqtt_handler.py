@@ -4,6 +4,7 @@ Manages MQTT communication and Home Assistant discovery
 """
 import json
 import logging
+import uuid
 from typing import Dict, Any, Optional
 import paho.mqtt.client as mqtt
 
@@ -35,7 +36,9 @@ class MQTTHandler:
     def connect(self) -> bool:
         """Connect to MQTT broker"""
         try:
-            self.client = mqtt.Client(client_id="enocean-mqtt-slim")
+            # Generate random client ID to prevent conflicts with stale sessions
+            client_id = f"enocean-mqtt-slim-{uuid.uuid4().hex[:8]}"
+            self.client = mqtt.Client(client_id=client_id)
             
             if self.username and self.password:
                 self.client.username_pw_set(self.username, self.password)
@@ -46,7 +49,7 @@ class MQTTHandler:
             self.client.connect(self.host, self.port, 60)
             self.client.loop_start()
             
-            logger.info(f"Connecting to MQTT broker at {self.host}:{self.port}")
+            logger.info(f"Connecting to MQTT broker at {self.host}:{self.port} (Client ID: {client_id})")
             return True
             
         except Exception as e:
