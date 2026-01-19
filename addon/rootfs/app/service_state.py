@@ -24,8 +24,8 @@ class ServiceState:
             return
         
         self.service = None
-        self.gateway_info = {}
-        self.detected_profiles = {}  # Cache: device_id -> list of detected profile EEPs
+        self.gateway_info = {} # Fallback / Cache
+        self.detected_profiles = {}
         self._initialized = True
     
     def set_service(self, service):
@@ -44,7 +44,6 @@ class ServiceState:
                 "mqtt_connected": False
             }
         
-        # FIX: is_open() ist eine Methode, daher müssen Klammern () gesetzt werden!
         gateway_connected = False
         if self.service.serial_handler:
             try:
@@ -61,44 +60,55 @@ class ServiceState:
         }
     
     def get_gateway_info(self) -> Dict[str, Any]:
-        """Get gateway information"""
+        """Get gateway information (Dynamic fetch from handler)"""
+        # Wenn der Handler verfügbar ist, holen wir die Live-Daten
+        if self.service and self.service.serial_handler:
+            handler = self.service.serial_handler
+            
+            # Base ID aktualisieren falls verfügbar
+            if handler.base_id:
+                self.gateway_info["base_id"] = handler.base_id
+                
+            # Version Info aktualisieren falls verfügbar
+            if handler.version_info:
+                v = handler.version_info
+                self.gateway_info.update({
+                    "version": v.get('app_version', 'Unknown'),
+                    "chip_id": v.get('chip_id', 'Unknown'),
+                    "description": v.get('app_description', '')
+                })
+        
         return self.gateway_info
     
     def set_gateway_info(self, info: Dict[str, Any]):
-        """Set gateway information"""
+        """Set gateway information (Initial setup)"""
         self.gateway_info = info
     
+    # ... Rest der Getter Methoden bleibt gleich ...
     def get_device_manager(self):
-        """Get device manager instance"""
         if self.service and self.service.device_manager:
             return self.service.device_manager
         return None
     
     def get_eep_loader(self):
-        """Get EEP loader instance"""
         if self.service and self.service.eep_loader:
             return self.service.eep_loader
         return None
     
     def get_mqtt_handler(self):
-        """Get MQTT handler instance"""
         if self.service and self.service.mqtt_handler:
             return self.service.mqtt_handler
         return None
     
     def get_state_persistence(self):
-        """Get state persistence instance"""
         if self.service and self.service.state_persistence:
             return self.service.state_persistence
         return None
     
     def set_detected_profiles(self, device_id: str, profile_eeps: list):
-        """Cache detected profiles for a device"""
         self.detected_profiles[device_id] = profile_eeps
-        logger.info(f"Cached {len(profile_eeps)} detected profiles for device {device_id}")
     
     def get_detected_profiles(self, device_id: str) -> list:
-        """Get cached detected profiles for a device"""
         return self.detected_profiles.get(device_id, [])
 
 
