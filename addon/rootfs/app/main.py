@@ -1,6 +1,6 @@
 """
 EnOcean MQTT TCP - Main Application
-(Updated: Version, EEP Count & Name)
+(Fixed: Web Server starts IMMEDIATELY for better UX)
 """
 import asyncio
 import logging
@@ -53,7 +53,7 @@ class EnOceanMQTTService:
         self.discovery_end_time = None
         
         # Config
-        self.addon_version = os.getenv('ADDON_VERSION', 'dev') # NEU
+        self.addon_version = os.getenv('ADDON_VERSION', 'dev')
         self.serial_port = os.getenv('SERIAL_PORT', '')
         self.mqtt_host = os.getenv('MQTT_HOST', 'localhost')
         self.mqtt_port = int(os.getenv('MQTT_PORT', 1883))
@@ -62,7 +62,7 @@ class EnOceanMQTTService:
         self.restore_state = os.getenv('RESTORE_STATE', 'true').lower() == 'true'
         self.restore_delay = int(os.getenv('RESTORE_DELAY', 5))
     
-    # ... (Discovery Methods unverändert) ...
+    # --- Discovery Methods ---
     def start_discovery(self, duration_seconds=60):
         self.discovery_end_time = datetime.now() + timedelta(seconds=duration_seconds)
         logger.info(f"🔎 DISCOVERY MODE ENABLED for {duration_seconds} seconds")
@@ -89,7 +89,6 @@ class EnOceanMQTTService:
         logger.info(f"EnOcean MQTT TCP v{self.addon_version} - Starting...")
         logger.info("=" * 60)
         
-        # STATUS UPDATE: Version initial setzen
         service_state.update_status('version', self.addon_version)
 
         # 1. Load EEPs
@@ -103,7 +102,6 @@ class EnOceanMQTTService:
             return False
             
         logger.info(f"✓ Loaded {len(self.eep_loader.profiles)} EEP profiles")
-        # STATUS UPDATE: EEP Count
         service_state.update_status('eep_profiles', len(self.eep_loader.profiles))
 
         # 2. Connection Logic
@@ -155,9 +153,7 @@ class EnOceanMQTTService:
         logger.info("=" * 60)
         return True
 
-    # ... (Rest der Datei callbacks, process_telegram, etc. bleibt identisch wie zuvor) ...
-    # (Ich kürze hier ab, um Platz zu sparen - der Rest ist unverändert zur letzten Version)
-    
+    # --- Callbacks ---
     async def on_command_confirmed(self, device_id: str, entity: str, command: dict, state_data: dict):
         logger.info(f"   🎯 Command confirmation processed for {device_id}/{entity}")
     
@@ -269,25 +265,50 @@ class EnOceanMQTTService:
             except: pass
 
     async def run_web_server(self):
+        # Disable Access Log to keep console clean
         config = uvicorn.Config(web_app, host="0.0.0.0", port=8099, log_level="warning", access_log=False, loop="asyncio")
         server = uvicorn.Server(config)
         await server.serve()
 
     async def run(self):
         self.running = True
-        if not await self.initialize(): return
+        
+        # 0. Set Service Reference immediately
         service_state.set_service(self)
-        service_state.update_status('status', 'running')
+        
+        # 1. Start Web Server Task FIRST (So UI is available immediately)
+        tasks = [asyncio.create_task(self.run_web_server())]
+        
+        # 2. Run Initialize
+        # Note: We await it here. Since web_server is a task on the same loop, it will run.
+        init_success = await self.initialize()
+        
+        if not init_success:
+             logger.error("Initialization failed!")
+             # We don't exit, we keep the web server running so user sees status
+        else:
+             service_state.update_status('status', 'running')
+        
+        # 3. Restore State
         if self.restore_state and self.state_persistence and self.mqtt_handler:
              await asyncio.sleep(self.restore_delay)
+        
+        # 4. Main Loop
         loop = asyncio.get_running_loop()
         stop_event = asyncio.Event()
         for sig in (signal.SIGINT, signal.SIGTERM):
             try: loop.add_signal_handler(sig, lambda: stop_event.set())
             except: pass
-        tasks = [asyncio.create_task(self.run_web_server()), asyncio.create_task(stop_event.wait())]
-        if self.serial_handler: tasks.append(asyncio.create_task(self.run_serial_reader()))
+        
+        # Add stop event waiter
+        tasks.append(asyncio.create_task(stop_event.wait()))
+        
+        if self.serial_handler:
+            tasks.append(asyncio.create_task(self.run_serial_reader()))
+        
+        # Wait until stop signal
         await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+        
         service_state.update_status('status', 'stopping')
         self.running = False
         if self.serial_handler: 

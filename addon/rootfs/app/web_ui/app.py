@@ -1,6 +1,6 @@
 """
 Web UI Application (Starlette)
-Updated with Discovery API
+Complete with Discovery & Device Management
 """
 import os
 import json
@@ -19,7 +19,7 @@ TEMPLATES_PATH = os.path.join(BASE_PATH, 'templates')
 
 async def homepage(request):
     try:
-        # Use dashboard_new logic
+        # We use dashboard_new as the main dashboard now
         with open(os.path.join(TEMPLATES_PATH, 'dashboard_new.html'), 'r', encoding='utf-8') as f:
             content = f.read()
         return HTMLResponse(content)
@@ -32,7 +32,7 @@ async def api_status(request):
     """Get service status including Discovery info"""
     status = service_state.get_status()
     
-    # Add Discovery Status
+    # Add Discovery Status dynamically
     service = service_state.get_service()
     if service:
         status['discovery_active'] = service.is_discovery_active()
@@ -67,24 +67,23 @@ async def api_discovery_control(request):
             return JSONResponse({'error': str(e)}, status_code=400)
 
 async def api_devices(request):
+    """List or Add devices"""
+    manager = service_state.get_device_manager()
+    if not manager: return JSONResponse({'error': 'Service not ready'}, status_code=503)
+
     if request.method == 'GET':
-        manager = service_state.get_device_manager()
-        if not manager: return JSONResponse({'error': 'Service not ready'}, status_code=503)
         return JSONResponse({'devices': manager.list_devices()})
     
     elif request.method == 'POST':
         try:
             data = await request.json()
-            manager = service_state.get_device_manager()
-            if not manager: return JSONResponse({'error': 'Service not ready'}, status_code=503)
-            
             success = manager.add_device(
                 data.get('id'),
                 data.get('name'),
                 data.get('eep'),
                 data.get('manufacturer', 'EnOcean')
             )
-            # Update RORG if provided manually
+            # Optional RORG update
             if success and data.get('rorg'):
                 dev = manager.get_device(data.get('id'))
                 if dev:
@@ -96,6 +95,7 @@ async def api_devices(request):
         except Exception as e: return JSONResponse({'detail': str(e)}, status_code=400)
 
 async def api_device_detail(request):
+    """Get/Update/Delete single device"""
     device_id = request.path_params['device_id']
     manager = service_state.get_device_manager()
     if not manager: return JSONResponse({'error': 'Service not ready'}, status_code=503)
@@ -108,8 +108,6 @@ async def api_device_detail(request):
     elif request.method == 'PUT':
         data = await request.json()
         success = manager.update_device(device_id, data)
-        # If EEP changed, re-publish discovery logic needs to trigger in main service
-        # For now we assume restart/reload or next telegram fixes it
         if success: return JSONResponse({'status': 'updated'})
         return JSONResponse({'detail': 'Update failed'}, status_code=400)
     
@@ -127,11 +125,12 @@ async def api_device_detail(request):
         return JSONResponse({'detail': 'Delete failed'}, status_code=400)
 
 async def api_eep_profiles(request):
+    """List all EEP profiles"""
     loader = service_state.get_eep_loader()
     if not loader: return JSONResponse({'profiles': []})
     return JSONResponse({'profiles': loader.list_profiles()})
 
-# Routes
+# Routes definition
 routes = [
     Route('/', endpoint=homepage),
     Route('/api/status', endpoint=api_status),
@@ -142,4 +141,5 @@ routes = [
 ]
 
 middleware = [Middleware(CORSMiddleware, allow_origins=['*'], allow_methods=['*'], allow_headers=['*'])]
+
 app = Starlette(debug=True, routes=routes, middleware=middleware)

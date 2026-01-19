@@ -1,58 +1,40 @@
 #!/usr/bin/with-contenv bashio
 
-# --- MQTT CHECK ---
-if ! bashio::services.available "mqtt"; then
-    bashio::log.fatal "#######################################################"
-    bashio::log.fatal "# KRITISCHER FEHLER: KEIN MQTT SERVICE GEFUNDEN!      #"
-    bashio::log.fatal "#                                                     #"
-    bashio::log.fatal "# Dieses Add-on benötigt zwingend einen MQTT Broker.  #"
-    bashio::log.fatal "# Bitte installiere das 'Mosquitto broker' Add-on     #"
-    bashio::log.fatal "# im Home Assistant Add-on Store.                     #"
-    bashio::log.fatal "#######################################################"
-    # Wir beenden das Add-on sofort, da es ohne MQTT sinnlos ist
-    bashio::exit.nok
-fi
-# ------------------
+# ------------------------------------------------------------------------------
+# EnOcean MQTT TCP - Startup Script
+# ------------------------------------------------------------------------------
 
-# Configuration loading with priority logic
-TCP_ADDR=$(bashio::config 'tcp_address')
-SERIAL_DEV=$(bashio::config 'serial_device')
-
-# Logic: TCP Address overrides Serial Device selection
-if [ -n "$TCP_ADDR" ]; then
-    bashio::log.info "Configuration: Using TCP Address provided in text field."
-    SERIAL_PORT="$TCP_ADDR"
-elif [ -n "$SERIAL_DEV" ] && [ "$SERIAL_DEV" != "null" ]; then
-    bashio::log.info "Configuration: Using selected Serial Device."
-    SERIAL_PORT="$SERIAL_DEV"
-else
-    # Fallback / Error
-    bashio::log.warning "No connection configured! Please select a device or enter a TCP address."
-    SERIAL_PORT="/dev/ttyUSB0"
-fi
-
-LOG_LEVEL=$(bashio::config 'log_level')
-
-# --- NEU: Version automatisch holen ---
+# 1. Version automatisch ermitteln und EXPORTIEREN
 ADDON_VERSION="$(bashio::addon.version)"
-bashio::log.info "Add-on Version: ${ADDON_VERSION}"
+export ADDON_VERSION
 
-# Export environment variables
-export ADDON_VERSION="${ADDON_VERSION}"  # <--- Hier wird sie für Python verfügbar gemacht
-export SERIAL_PORT="${SERIAL_PORT}"
-export LOG_LEVEL="${LOG_LEVEL}"
-export MQTT_HOST=$(bashio::services mqtt "host")
-export MQTT_PORT=$(bashio::services mqtt "port")
-export MQTT_USER=$(bashio::services mqtt "username")
-export MQTT_PASSWORD=$(bashio::services mqtt "password")
+bashio::log.info "---------------------------------------------------"
+bashio::log.info "Starting EnOcean MQTT TCP..."
+bashio::log.info "Add-on Version: ${ADDON_VERSION}"
+bashio::log.info "---------------------------------------------------"
+
+# 2. Konfiguration prüfen
+if bashio::config.has_value 'serial_port'; then
+    SERIAL_PORT=$(bashio::config 'serial_port')
+    export SERIAL_PORT
+    bashio::log.info "Using Serial Port: ${SERIAL_PORT}"
+else
+    bashio::log.warning "No serial port configured! Running in simulation/view-only mode."
+fi
+
+# MQTT Config
+export MQTT_HOST=$(bashio::config 'mqtt_host')
+export MQTT_PORT=$(bashio::config 'mqtt_port')
+export MQTT_USER=$(bashio::config 'mqtt_user')
+export MQTT_PASSWORD=$(bashio::config 'mqtt_password')
+
+# State Restore Config
 export RESTORE_STATE=$(bashio::config 'restore_state')
 export RESTORE_DELAY=$(bashio::config 'restore_delay')
 
-# Log startup details
-bashio::log.info "Starting EnOcean MQTT Slim..."
-bashio::log.info "Target Interface: ${SERIAL_PORT}"
-bashio::log.info "Log Level: ${LOG_LEVEL}"
-
-# Start the application
+# 3. Python App starten
 cd /app
-exec python3 main.py
+source venv/bin/activate
+
+# Uvicorn wird direkt im Python-Skript gestartet
+python3 main.py
