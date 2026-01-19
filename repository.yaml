@@ -1,4 +1,3 @@
----
-name: "EnOcean MQTT Slim Repository"
-url: "https://github.com/ESDN83/ha-enocean-mqtt-slim"
-maintainer: "ESDN83"
+name: "EnOcean MQTT TCP Repository"
+url: "https://github.com/tostmann/ha-enocean-mqtt-slim"
+maintainer: "tostmann"
