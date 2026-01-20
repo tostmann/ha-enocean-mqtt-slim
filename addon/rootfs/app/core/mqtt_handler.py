@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-import os  # <--- WICHTIG!
+import os
 import paho.mqtt.client as mqtt
 
 logger = logging.getLogger(__name__)
@@ -12,8 +12,10 @@ class MQTTHandler:
         self.port = port
         self.username = username
         self.password = password
-        # WICHTIG: os.urandom braucht den import os oben!
-        self.client = mqtt.Client(client_id=f"enocean-mqtt-tcp-{os.urandom(4).hex()}")
+        
+        # FIX: Client ID speichern für Dashboard-Anzeige
+        self.client_id = f"enocean-mqtt-tcp-{os.urandom(4).hex()}"
+        self.client = mqtt.Client(client_id=self.client_id)
         
         if self.username and self.password:
             self.client.username_pw_set(self.username, self.password)

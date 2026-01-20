@@ -6,7 +6,7 @@
     <title>EnOcean MQTT TCP</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-    <style>body{padding-top:20px}.table-middle td{vertical-align:middle}</style>
+    <style>body{padding-top:20px}.table-middle td{vertical-align:middle}.cursor-pointer{cursor:pointer; transition: background-color 0.2s;}.cursor-pointer:hover{background-color:#f8f9fa!important}</style>
 </head>
 <body>
     <div class="container">
@@ -20,9 +20,24 @@
         <div class="row mb-4 text-center">
             <div class="col-md-3"><div class="p-3 border rounded bg-light"><h5>Devices</h5><h3 id="device-count">0</h3></div></div>
             <div class="col-md-3"><div class="p-3 border rounded bg-light"><h5>Profiles</h5><h3 id="eep-count">0</h3></div></div>
-            <div class="col-md-3"><div class="p-3 border rounded bg-light"><h5>Gateway</h5><span id="gateway-status" class="badge bg-secondary">Unknown</span></div></div>
-            <div class="col-md-3"><div class="p-3 border rounded bg-light"><h5>MQTT</h5><span id="mqtt-status" class="badge bg-secondary">Unknown</span></div></div>
+            
+            <div class="col-md-3" onclick="showGatewayInfo()">
+                <div class="p-3 border rounded bg-light cursor-pointer position-relative">
+                    <i class="bi bi-info-circle position-absolute top-0 end-0 m-2 text-muted"></i>
+                    <h5>Gateway</h5>
+                    <span id="gateway-status" class="badge bg-secondary">Unknown</span>
+                </div>
+            </div>
+
+            <div class="col-md-3" onclick="showMqttInfo()">
+                <div class="p-3 border rounded bg-light cursor-pointer position-relative">
+                    <i class="bi bi-info-circle position-absolute top-0 end-0 m-2 text-muted"></i>
+                    <h5>MQTT</h5>
+                    <span id="mqtt-status" class="badge bg-secondary">Unknown</span>
+                </div>
+            </div>
         </div>
+
         <div class="mb-3 d-flex justify-content-end">
              <button id="btn-start-discovery" class="btn btn-primary" onclick="toggleDiscovery()"><i class="bi bi-search"></i> Start Discovery</button>
              <button id="btn-stop-discovery" class="btn btn-danger d-none" onclick="toggleDiscovery()"><div class="spinner-border spinner-border-sm"></div> Stop (<span id="discovery-timer">60</span>s)</button>
@@ -48,19 +63,14 @@
                         <input type="hidden" id="edit-id"><input type="hidden" id="edit-rorg">
                         <div class="mb-3"><label>Device ID</label><input type="text" class="form-control" id="edit-id-display" disabled></div>
                         <div class="mb-3"><label>Name</label><input type="text" class="form-control" id="edit-name"></div>
-                        
                         <div id="provisioning-section" class="mb-3 d-none">
                             <label class="form-label fw-bold text-success">Vendor Recommended Configs:</label>
                             <div id="provisioning-options" class="list-group mb-2"></div>
                         </div>
-
                         <div class="mb-3">
                             <label>Manual Profile Selection</label>
                             <select class="form-select" id="edit-eep"></select>
-                            <div class="form-check mt-1">
-                                <input class="form-check-input" type="checkbox" id="show-all-profiles" onchange="populateProfileDropdown()">
-                                <label class="form-check-label small">Show all profiles</label>
-                            </div>
+                            <div class="form-check mt-1"><input class="form-check-input" type="checkbox" id="show-all-profiles" onchange="populateProfileDropdown()"><label class="form-check-label small">Show all profiles</label></div>
                         </div>
                         <div class="form-check"><input type="checkbox" class="form-check-input" id="edit-enabled"><label>Enable Device</label></div>
                     </form>
@@ -73,19 +83,43 @@
     <div class="modal fade" id="deleteModal" tabindex="-1">
         <div class="modal-dialog">
             <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> Delete Device?</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
+                <div class="modal-header bg-danger text-white"><h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> Delete Device?</h5><button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body"><p>Are you sure you want to delete <strong id="del-dev-name"></strong> (<span id="del-dev-id"></span>)?</p><div class="alert alert-warning small mb-0"><i class="bi bi-info-circle"></i> This action cannot be undone. It will also remove all corresponding entities from Home Assistant.</div></div>
+                <div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button><button type="button" class="btn btn-danger" onclick="confirmDelete()">Yes, Delete Permanently</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="gatewayModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">Gateway Information</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
                 <div class="modal-body">
-                    <p>Are you sure you want to delete <strong id="del-dev-name"></strong> (<span id="del-dev-id"></span>)?</p>
-                    <div class="alert alert-warning small mb-0">
-                        <i class="bi bi-info-circle"></i> This action cannot be undone. It will also remove all corresponding entities from Home Assistant.
-                    </div>
+                    <table class="table table-sm table-borderless">
+                        <tr><th>Connection Type:</th><td id="gw-type">-</td></tr>
+                        <tr><th>Port / Address:</th><td id="gw-addr" class="font-monospace">-</td></tr>
+                        <tr><th>Base ID:</th><td id="gw-baseid" class="font-monospace fw-bold">-</td></tr>
+                        <tr><th>Chip Version:</th><td id="gw-ver" class="text-break small">-</td></tr>
+                        <tr><th>Status:</th><td><span id="gw-status-badge" class="badge bg-secondary">Unknown</span></td></tr>
+                    </table>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" onclick="confirmDelete()">Yes, Delete Permanently</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="mqttModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header"><h5 class="modal-title">MQTT Information</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body">
+                    <table class="table table-sm table-borderless">
+                        <tr><th>Broker:</th><td id="mq-host" class="font-monospace">-</td></tr>
+                        <tr><th>Port:</th><td id="mq-port">-</td></tr>
+                        <tr><th>User:</th><td id="mq-user">-</td></tr>
+                        <tr><th>Client ID:</th><td id="mq-clientid" class="font-monospace small">-</td></tr>
+                        <tr><th>Base Topic:</th><td id="mq-topic" class="font-monospace text-primary">-</td></tr>
+                        <tr><th>Status:</th><td><span id="mq-status-badge" class="badge bg-secondary">Unknown</span></td></tr>
+                    </table>
                 </div>
             </div>
         </div>
@@ -94,7 +128,8 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let allProfiles=[], isDisc=false, currentDev=null, selectedProv=null;
-        let deleteTargetId = null; // Store ID for deletion
+        let deleteTargetId = null; 
+        let lastStatusData = null; // Store full status for Modals
 
         document.addEventListener('DOMContentLoaded',async()=>{await loadProfs();refresh();loadDevs();setInterval(refresh,2000);setInterval(loadDevs,10000);});
 
@@ -102,10 +137,13 @@
             try{
                 const res=await fetch('api/status'); if(!res.ok)throw new Error();
                 const d=await res.json();
+                lastStatusData = d; // Speichern für Modals
+                
                 document.getElementById('status-badge').textContent=d.status;
                 document.getElementById('status-badge').className=d.status==='running'?'badge bg-success':'badge bg-danger';
                 document.getElementById('app-version').textContent=d.version||'dev';
-                updateBadge('gateway-status',d.gateway_connected);updateBadge('mqtt-status',d.mqtt_connected);
+                updateBadge('gateway-status',d.gateway_connected);
+                updateBadge('mqtt-status',d.mqtt_connected);
                 document.getElementById('device-count').textContent=d.devices||0;
                 document.getElementById('eep-count').textContent=d.eep_profiles||0;
                 
@@ -114,6 +152,7 @@
                 else{if(isDisc)loadDevs();isDisc=false;btnS.classList.remove('d-none');btnE.classList.add('d-none');}
             }catch(e){}
         }
+
         function updateBadge(id,conn){const el=document.getElementById(id);el.textContent=conn?'Connected':'Disconnected';el.className=conn?'badge bg-success':'badge bg-danger';}
         async function toggleDiscovery(){const a=isDisc?'stop':'start';await fetch('api/system/discovery',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:a,duration:60})});refresh();}
         async function loadProfs(){const r=await fetch('api/eep-profiles');const d=await r.json();allProfiles=d.profiles||[];allProfiles.sort((a,b)=>a.eep.localeCompare(b.eep));}
@@ -126,35 +165,57 @@
                 const p=d.eep==='pending';
                 const cls=p?'table-warning':(d.enabled?'':'table-secondary');
                 const dj=JSON.stringify(d).replace(/"/g,'&quot;');
-                // UPDATE: Button calls askDelete now
                 return `<tr class="${cls}"><td><small>${d.id}</small></td><td>${d.name}</td><td>${p?'<span class="badge bg-warning text-dark">Pending</span>':d.eep}</td><td><small>${d.rorg||'-'}</small></td><td>${d.rssi?d.rssi+' dBm':'-'}</td><td><small>${d.last_seen?new Date(d.last_seen).toLocaleTimeString():'-'}</small></td><td class="text-end"><button class="btn btn-sm btn-outline-primary me-1" onclick="openEdit(${dj})">Edit</button><button class="btn btn-sm btn-outline-danger" onclick="askDelete('${d.id}', '${d.name}')">Del</button></td></tr>`;
             }).join('');
         }
 
+        // --- NEW: Info Modal Logic ---
+        function showGatewayInfo() {
+            if(!lastStatusData) return;
+            const gw = lastStatusData.gateway_info || {};
+            document.getElementById('gw-type').textContent = gw.type || '-';
+            document.getElementById('gw-addr').textContent = gw.address || '-';
+            document.getElementById('gw-baseid').textContent = gw.base_id || 'Waiting...';
+            document.getElementById('gw-ver').textContent = gw.version || '-';
+            
+            const badge = document.getElementById('gw-status-badge');
+            badge.textContent = gw.connected ? 'Connected' : 'Disconnected';
+            badge.className = gw.connected ? 'badge bg-success' : 'badge bg-danger';
+
+            new bootstrap.Modal(document.getElementById('gatewayModal')).show();
+        }
+
+        function showMqttInfo() {
+            if(!lastStatusData) return;
+            const mq = lastStatusData.mqtt_info || {};
+            document.getElementById('mq-host').textContent = mq.host || '-';
+            document.getElementById('mq-port').textContent = mq.port || '-';
+            document.getElementById('mq-user').textContent = mq.user || '-';
+            document.getElementById('mq-clientid').textContent = mq.client_id || '-';
+            document.getElementById('mq-topic').textContent = mq.base_topic + '#';
+
+            const badge = document.getElementById('mq-status-badge');
+            badge.textContent = mq.connected ? 'Connected' : 'Disconnected';
+            badge.className = mq.connected ? 'badge bg-success' : 'badge bg-danger';
+
+            new bootstrap.Modal(document.getElementById('mqttModal')).show();
+        }
+
+        // --- EDIT & DELETE (Existing) ---
         function openEdit(d){
             currentDev=d; selectedProv=null;
             document.getElementById('edit-id').value=d.id; document.getElementById('edit-id-display').value=d.id;
             document.getElementById('edit-name').value=d.name; document.getElementById('edit-enabled').checked=d.enabled!==false;
             document.getElementById('show-all-profiles').checked=false;
-            
-            const pDiv=document.getElementById('provisioning-section');
-            const pOpts=document.getElementById('provisioning-options');
+            const pDiv=document.getElementById('provisioning-section'); const pOpts=document.getElementById('provisioning-options');
             pOpts.innerHTML='';
-            
             if(d.provisioning_options && d.provisioning_options.length>0){
                 pDiv.classList.remove('d-none');
                 d.provisioning_options.forEach(opt=>{
                     const active = (d.eep.includes(opt.id)) ? 'active' : '';
-                    pOpts.innerHTML += `
-                        <button type="button" class="list-group-item list-group-item-action ${active}" onclick="selectProv(this, '${opt.url}', '${opt.id}')">
-                            <div class="d-flex w-100 justify-content-between"><h6 class="mb-1">${opt.name}</h6></div>
-                            <small>${opt.description}</small>
-                        </button>`;
+                    pOpts.innerHTML += `<button type="button" class="list-group-item list-group-item-action ${active}" onclick="selectProv(this, '${opt.url}', '${opt.id}')"><div class="d-flex w-100 justify-content-between"><h6 class="mb-1">${opt.name}</h6></div><small>${opt.description}</small></button>`;
                 });
-            } else {
-                pDiv.classList.add('d-none');
-            }
-
+            } else { pDiv.classList.add('d-none'); }
             populateProfileDropdown();
             new bootstrap.Modal(document.getElementById('editDeviceModal')).show();
         }
@@ -171,47 +232,24 @@
             sel.innerHTML='';
             let profs=allProfiles;
             if(!all && rorg.startsWith('0x')){const pre=rorg.replace('0x','').toUpperCase(); const m=allProfiles.filter(p=>p.eep.startsWith(pre)); if(m.length>0)profs=m;}
-            
             sel.add(new Option('Select Manual Profile...', '', true, true));
             profs.forEach(p=>sel.add(new Option(`${p.eep} - ${p.title}`, p.eep, false, p.eep===currentDev.eep)));
         }
 
         async function saveDevice(){
             const id=document.getElementById('edit-id').value;
-            const data={
-                name:document.getElementById('edit-name').value,
-                enabled:document.getElementById('edit-enabled').checked
-            };
-            
-            if(selectedProv){
-                data.provisioning_variant_url = selectedProv.url;
-                data.provisioning_variant_id = selectedProv.id;
-            } else {
-                data.eep=document.getElementById('edit-eep').value;
-                if(!data.eep){alert('Please select a profile!');return;}
-            }
-
+            const data={ name:document.getElementById('edit-name').value, enabled:document.getElementById('edit-enabled').checked };
+            if(selectedProv){ data.provisioning_variant_url=selectedProv.url; data.provisioning_variant_id=selectedProv.id; } 
+            else { data.eep=document.getElementById('edit-eep').value; if(!data.eep){alert('Please select a profile!');return;} }
             await fetch(`api/devices/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
             bootstrap.Modal.getInstance(document.getElementById('editDeviceModal')).hide();
             loadDevs();
         }
 
-        // --- DELETE LOGIC ---
-        function askDelete(id, name) {
-            deleteTargetId = id;
-            document.getElementById('del-dev-id').textContent = id;
-            document.getElementById('del-dev-name').textContent = name || 'Unknown Device';
-            new bootstrap.Modal(document.getElementById('deleteModal')).show();
-        }
-
+        function askDelete(id, name) { deleteTargetId = id; document.getElementById('del-dev-id').textContent = id; document.getElementById('del-dev-name').textContent = name || 'Unknown Device'; new bootstrap.Modal(document.getElementById('deleteModal')).show(); }
         async function confirmDelete() {
             if(!deleteTargetId) return;
-            try {
-                const res = await fetch(`api/devices/${deleteTargetId}`,{method:'DELETE'});
-                if(!res.ok) alert('Delete failed');
-            } catch(e) { console.error(e); }
-            
-            // Cleanup
+            try { await fetch(`api/devices/${deleteTargetId}`,{method:'DELETE'}); } catch(e) { console.error(e); }
             deleteTargetId = null;
             bootstrap.Modal.getInstance(document.getElementById('deleteModal')).hide();
             loadDevs();
