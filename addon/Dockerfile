@@ -12,6 +12,7 @@ RUN apk add --no-cache \
     py3-wheel \
     gcc \
     musl-dev \
+    aiohttp \
     python3-dev
 
 # Copy application files

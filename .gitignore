@@ -6,3 +6,8 @@ __pycache__/
 addon/rootfs/app/venv/
 venv/
 .venv/
+
+
+addon/rootfs/app/devices.json
+addon/rootfs/app/eep/definitions/provisioned/
+addon/rootfs/app/eep/definitions/custom/

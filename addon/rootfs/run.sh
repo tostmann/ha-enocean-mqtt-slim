@@ -19,12 +19,12 @@ fi
 
 LOG_LEVEL=$(bashio::config 'log_level')
 
-# --- NEU: Version automatisch holen (Robust) ---
+# --- Version automatisch holen ---
 if bashio::addon.version > /dev/null 2>&1; then
     ADDON_VERSION="$(bashio::addon.version)"
 else
-    # Fallback falls bashio fehlschlägt (z.B. lokaler Test)
-    ADDON_VERSION="1.1.56"
+    # Fallback
+    ADDON_VERSION="dev"
 fi
 bashio::log.info "Add-on Version: ${ADDON_VERSION}"
 
@@ -38,8 +38,10 @@ export MQTT_USER=$(bashio::services mqtt "username")
 export MQTT_PASSWORD=$(bashio::services mqtt "password")
 export RESTORE_STATE=$(bashio::config 'restore_state')
 export RESTORE_DELAY=$(bashio::config 'restore_delay')
+# Optional: Provisioning URL via Config (falls gewünscht, sonst leer lassen)
+export PROVISIONING_URL=$(bashio::config 'provisioning_url')
 
-# Log startup details - NAME FIXED
+# Log startup details
 bashio::log.info "Starting EnOcean MQTT TCP..."
 bashio::log.info "Target Interface: ${SERIAL_PORT}"
 bashio::log.info "Log Level: ${LOG_LEVEL}"

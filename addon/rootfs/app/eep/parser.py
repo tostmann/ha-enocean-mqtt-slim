@@ -21,9 +21,9 @@ class EEPParser:
     def parse_telegram_with_full_data(self, data, profile):
         if not profile: return None
         
-        # --- FIX HIER ---
+        # --- FIX: Safe Data Access ---
         profile_data = self._get_profile_data(profile)
-        # ----------------
+        # -----------------------------
         
         rorg = data[0]
         eep_name = profile_data.get('eep', 'Unknown')

@@ -25,7 +25,7 @@ class DeviceManager:
                 with open(self.storage_path, 'r') as f:
                     self.devices = json.load(f)
             except Exception as e:
-                logger.error(f"Error loading devices from {self.storage_path}: {e}")
+                logger.error(f"Error loading devices: {e}")
                 self.devices = {}
         else:
             self.devices = {}
@@ -35,11 +35,10 @@ class DeviceManager:
             directory = os.path.dirname(self.storage_path)
             if directory and not os.path.exists(directory):
                 os.makedirs(directory, exist_ok=True)
-                
             with open(self.storage_path, 'w') as f:
                 json.dump(self.devices, f, indent=2)
         except Exception as e:
-            logger.error(f"Error saving devices to {self.storage_path}: {e}")
+            logger.error(f"Error saving devices: {e}")
 
     def list_devices(self):
         return list(self.devices.values())
@@ -47,7 +46,8 @@ class DeviceManager:
     def get_device(self, device_id):
         return self.devices.get(device_id)
 
-    def add_device(self, device_id, name, eep, manufacturer="EnOcean"):
+    # NEU: parameter provisioning_data
+    def add_device(self, device_id, name, eep, manufacturer="EnOcean", provisioning_data=None):
         if device_id in self.devices and self.devices[device_id].get('eep') != 'pending':
             return False
             
@@ -57,22 +57,19 @@ class DeviceManager:
             "eep": eep,
             "manufacturer": manufacturer,
             "enabled": True,
-            "last_seen": datetime.now().isoformat() # Initialer Wert
+            "last_seen": datetime.now().isoformat(),
+            "provisioning_options": provisioning_data # Save options
         }
         self.save_devices()
         return True
 
     def update_device(self, device_id, data):
-        if device_id not in self.devices:
-            return False
-        
+        if device_id not in self.devices: return False
         device = self.devices[device_id]
-        if 'name' in data: device['name'] = data['name']
-        if 'eep' in data: device['eep'] = data['eep']
-        if 'manufacturer' in data: device['manufacturer'] = data['manufacturer']
-        if 'enabled' in data: device['enabled'] = data['enabled']
-        if 'rorg' in data: device['rorg'] = data['rorg']
         
+        for key in ['name', 'eep', 'manufacturer', 'enabled', 'rorg']:
+            if key in data: device[key] = data[key]
+            
         self.save_devices()
         return True
 
@@ -84,8 +81,7 @@ class DeviceManager:
         return False
         
     def update_last_seen(self, device_id, rssi):
-        """Updates RSSI and Last Seen timestamp in memory"""
         if device_id in self.devices:
             self.devices[device_id]['rssi'] = rssi
             self.devices[device_id]['last_seen'] = datetime.now().isoformat()
-            # Wir speichern nicht auf Disk, um I/O zu sparen, aber die API liefert es live aus
+            # No save to disk for perf

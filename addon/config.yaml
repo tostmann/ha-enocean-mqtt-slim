@@ -1,7 +1,7 @@
 name: "EnOcean MQTT TCP/Serial"
-version: "1.1.64"
+version: "1.2.0"
 slug: "enocean-mqtt-tcp"
-description: "Advanced EnOcean Bridge. Select USB device OR enter TCP Address manually."
+description: "Advanced EnOcean Bridge. Select USB device OR enter TCP Address manually. Includes Auto-Provisioning."
 url: "https://github.com/tostmann/ha-enocean-mqtt-slim"
 arch:
   - aarch64
@@ -29,6 +29,7 @@ options:
   log_level: "info"
   restore_state: true
   restore_delay: 5
+  provisioning_url: "https://prov.busser.io"
 
 schema:
   serial_device: "device(subsystem=tty)?"
@@ -36,3 +37,4 @@ schema:
   log_level: "list(debug|info|warning|error)"
   restore_state: "bool"
   restore_delay: "int(1,60)"
+  provisioning_url: "str?"
