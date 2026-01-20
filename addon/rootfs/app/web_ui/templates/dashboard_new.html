@@ -83,7 +83,7 @@
         </div>
         
         <div class="mt-3 text-muted small text-end">
-            <a href="/api/status" target="_blank">System Status JSON</a>
+            <a href="api/status" target="_blank">System Status JSON</a>
         </div>
     </div>
 
@@ -147,7 +147,10 @@
 
         async function refreshStatus() {
             try {
-                const res = await fetch('/api/status');
+                // FIX: Relative Path
+                const res = await fetch('api/status');
+                if (!res.ok) throw new Error("API Error");
+                
                 const data = await res.json();
                 
                 // Header Status
@@ -171,12 +174,16 @@
                     btnStop.classList.remove('d-none');
                     document.getElementById('discovery-timer').textContent = data.discovery_remaining;
                 } else {
-                    if (isDiscoveryRunning) loadDevices(); // Refresh once on stop
+                    if (isDiscoveryRunning) loadDevices(); 
                     isDiscoveryRunning = false;
                     btnStart.classList.remove('d-none');
                     btnStop.classList.add('d-none');
                 }
-            } catch(e) { console.error(e); }
+            } catch(e) { 
+                console.error("Status fetch failed:", e); 
+                document.getElementById('status-badge').textContent = "Connection Lost";
+                document.getElementById('status-badge').className = "badge bg-warning text-dark";
+            }
         }
 
         function updateBadge(id, connected) {
@@ -187,7 +194,8 @@
 
         async function toggleDiscovery() {
             const action = isDiscoveryRunning ? 'stop' : 'start';
-            await fetch('/api/system/discovery', {
+            // FIX: Relative Path
+            await fetch('api/system/discovery', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ action: action, duration: 60 })
@@ -196,15 +204,19 @@
         }
 
         async function loadProfiles() {
-            const res = await fetch('/api/eep-profiles');
-            const data = await res.json();
-            allProfiles = data.profiles || [];
-            allProfiles.sort((a,b) => a.eep.localeCompare(b.eep));
+            try {
+                // FIX: Relative Path
+                const res = await fetch('api/eep-profiles');
+                const data = await res.json();
+                allProfiles = data.profiles || [];
+                allProfiles.sort((a,b) => a.eep.localeCompare(b.eep));
+            } catch(e) { console.error("Profile load error:", e); }
         }
 
         async function loadDevices() {
             try {
-                const res = await fetch('/api/devices');
+                // FIX: Relative Path
+                const res = await fetch('api/devices');
                 const data = await res.json();
                 const devices = data.devices || [];
                 const tbody = document.getElementById('device-list');
@@ -286,7 +298,8 @@
             
             if(!data.eep) { alert('Select a profile'); return; }
 
-            await fetch(`/api/devices/${id}`, {
+            // FIX: Relative Path
+            await fetch(`api/devices/${id}`, {
                 method: 'PUT',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(data)
@@ -298,7 +311,8 @@
 
         async function deleteDev(id) {
             if(confirm('Delete device?')) {
-                await fetch(`/api/devices/${id}`, { method: 'DELETE' });
+                // FIX: Relative Path
+                await fetch(`api/devices/${id}`, { method: 'DELETE' });
                 loadDevices();
             }
         }

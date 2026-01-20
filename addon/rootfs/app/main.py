@@ -266,7 +266,7 @@ class EnOceanMQTTService:
 
     async def run_web_server(self):
         # Disable Access Log to keep console clean
-        config = uvicorn.Config(web_app, host="0.0.0.0", port=8099, log_level="warning", access_log=False, loop="asyncio")
+        config = uvicorn.Config(web_app, host="0.0.0.0", port=8099, log_level="info", access_log=True, loop="asyncio")
         server = uvicorn.Server(config)
         await server.serve()
 
