@@ -1,0 +1,23 @@
+{
+  "eep": "F6-02-01-Simple",
+  "rorg_number": "0xF6",
+  "func_number": "0x02",
+  "type_number": "0x01",
+  "type_title": "Simple Toggle (Up/Down)",
+  "objects": {
+    "Btn_Up":   { "component": "binary_sensor", "name": "Button Up", "icon": "mdi:arrow-up-bold-box" },
+    "Btn_Down": { "component": "binary_sensor", "name": "Button Down", "icon": "mdi:arrow-down-bold-box" },
+    "rssi": { "component": "sensor", "name": "RSSI", "device_class": "signal_strength", "unit": "dBm" },
+    "last_seen": { "component": "sensor", "name": "Last Seen", "device_class": "timestamp", "icon": "mdi:clock-time-four-outline" }
+  },
+  "case": [
+    {
+      "comment": "Release", "data": "0x00",
+      "datafield": [ { "shortcut": "Btn_Up", "value": "OFF" }, { "shortcut": "Btn_Down", "value": "OFF" } ]
+    },
+    { "comment": "Up Left",  "data": "0x70", "datafield": [{ "shortcut": "Btn_Up", "value": "ON" }] },
+    { "comment": "Up Right", "data": "0x30", "datafield": [{ "shortcut": "Btn_Up", "value": "ON" }] },
+    { "comment": "Down Left", "data": "0x50", "datafield": [{ "shortcut": "Btn_Down", "value": "ON" }] },
+    { "comment": "Down Right","data": "0x10", "datafield": [{ "shortcut": "Btn_Down", "value": "ON" }] }
+  ]
+}

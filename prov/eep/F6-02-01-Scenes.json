@@ -1,0 +1,28 @@
+{
+  "eep": "F6-02-01-Scenes",
+  "rorg_number": "0xF6",
+  "func_number": "0x02",
+  "type_number": "0x01",
+  "type_title": "Scene Controller",
+  "objects": {
+    "Scene_A": { "component": "binary_sensor", "name": "Scene A (Cinema)", "icon": "mdi:movie-open" },
+    "Scene_B": { "component": "binary_sensor", "name": "Scene B (Relax)", "icon": "mdi:sofa" },
+    "Scene_C": { "component": "binary_sensor", "name": "Scene C (Cooking)", "icon": "mdi:chef-hat" },
+    "Scene_D": { "component": "binary_sensor", "name": "Scene D (Off)", "icon": "mdi:power" },
+    "rssi": { "component": "sensor", "name": "RSSI", "device_class": "signal_strength", "unit": "dBm" },
+    "last_seen": { "component": "sensor", "name": "Last Seen", "device_class": "timestamp", "icon": "mdi:clock-time-four-outline" }
+  },
+  "case": [
+    {
+      "comment": "Release", "data": "0x00",
+      "datafield": [
+        { "shortcut": "Scene_A", "value": "OFF" }, { "shortcut": "Scene_B", "value": "OFF" },
+        { "shortcut": "Scene_C", "value": "OFF" }, { "shortcut": "Scene_D", "value": "OFF" }
+      ]
+    },
+    { "comment": "Scene A", "data": "0x70", "datafield": [{ "shortcut": "Scene_A", "value": "ON" }] },
+    { "comment": "Scene B", "data": "0x50", "datafield": [{ "shortcut": "Scene_B", "value": "ON" }] },
+    { "comment": "Scene C", "data": "0x30", "datafield": [{ "shortcut": "Scene_C", "value": "ON" }] },
+    { "comment": "Scene D", "data": "0x10", "datafield": [{ "shortcut": "Scene_D", "value": "ON" }] }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "eep": "F6-02-01-Light",
+  "rorg_number": "0xF6",
+  "func_number": "0x02",
+  "type_number": "0x01",
+  "type_title": "Rocker Switch (Light Control)",
+  "objects": {
+    "Switch_LT": { "component": "binary_sensor", "name": "Light Left Top", "icon": "mdi:light-switch" },
+    "Switch_LB": { "component": "binary_sensor", "name": "Light Left Bottom", "icon": "mdi:light-switch" },
+    "Switch_RT": { "component": "binary_sensor", "name": "Light Right Top", "icon": "mdi:light-switch" },
+    "Switch_RB": { "component": "binary_sensor", "name": "Light Right Bottom", "icon": "mdi:light-switch" },
+    "rssi": { "component": "sensor", "name": "RSSI", "device_class": "signal_strength", "unit": "dBm" },
+    "last_seen": { "component": "sensor", "name": "Last Seen", "device_class": "timestamp", "icon": "mdi:clock-time-four-outline" }
+  },
+  "case": [
+    {
+      "comment": "Release", "data": "0x00",
+      "datafield": [
+        { "shortcut": "Switch_LT", "value": "OFF" }, { "shortcut": "Switch_LB", "value": "OFF" },
+        { "shortcut": "Switch_RT", "value": "OFF" }, { "shortcut": "Switch_RB", "value": "OFF" }
+      ]
+    },
+    { "comment": "LT Pressed", "data": "0x70", "datafield": [{ "shortcut": "Switch_LT", "value": "ON" }] },
+    { "comment": "LB Pressed", "data": "0x50", "datafield": [{ "shortcut": "Switch_LB", "value": "ON" }] },
+    { "comment": "RT Pressed", "data": "0x30", "datafield": [{ "shortcut": "Switch_RT", "value": "ON" }] },
+    { "comment": "RB Pressed", "data": "0x10", "datafield": [{ "shortcut": "Switch_RB", "value": "ON" }] }
+  ]
+}

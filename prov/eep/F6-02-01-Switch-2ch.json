@@ -1,0 +1,71 @@
+{
+  "eep": "F6-02-01-Switch-2ch",
+  "rorg_number": "0xF6",
+  "func_number": "0x02",
+  "type_number": "0x01",
+  "type_title": "2-Kanal Schalter (Oben=An / Unten=Aus)",
+  "description": "Verhält sich wie zwei echte Kippschalter. Zustand bleibt erhalten.",
+  "objects": {
+    "Switch_Left": {
+      "name": "Schalter Links",
+      "component": "binary_sensor",
+      "device_class": "power",
+      "icon": "mdi:toggle-switch"
+    },
+    "Switch_Right": {
+      "name": "Schalter Rechts",
+      "component": "binary_sensor",
+      "device_class": "power",
+      "icon": "mdi:toggle-switch"
+    },
+    "rssi": {
+      "name": "RSSI",
+      "component": "sensor",
+      "device_class": "signal_strength",
+      "unit": "dBm"
+    },
+    "last_seen": { 
+      "component": "sensor", 
+      "name": "Last Seen", 
+      "device_class": "timestamp", 
+      "icon": "mdi:clock-time-four-outline" 
+    }
+  },
+  "case": [
+    {
+      "comment": "Release (Ignorieren)",
+      "data": "0x00",
+      "datafield": [
+        {"shortcut": "ignore", "value": 0} 
+      ]
+    },
+    {
+      "comment": "Links Oben (AI) -> AN",
+      "data": "0x30",
+      "datafield": [
+        { "shortcut": "Switch_Left", "value": "ON" }
+      ]
+    },
+    {
+      "comment": "Links Unten (A0) -> AUS",
+      "data": "0x10",
+      "datafield": [
+        { "shortcut": "Switch_Left", "value": "OFF" }
+      ]
+    },
+    {
+      "comment": "Rechts Oben (BI) -> AN",
+      "data": "0x70",
+      "datafield": [
+        { "shortcut": "Switch_Right", "value": "ON" }
+      ]
+    },
+    {
+      "comment": "Rechts Unten (B0) -> AUS",
+      "data": "0x50",
+      "datafield": [
+        { "shortcut": "Switch_Right", "value": "OFF" }
+      ]
+    }
+  ]
+}

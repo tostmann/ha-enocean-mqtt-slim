@@ -1,0 +1,26 @@
+{
+  "device_id": "00113168",
+  "name": "PTM-200 Flur (Altbau)",
+  "manufacturer": "EnOcean / Eltako",
+  "default_variant": "light_4ch",
+  "variants": [
+    {
+      "id": "light_4ch",
+      "name": "4-Kanal Lichtschalter (Standard)",
+      "description": "Erstellt 4 separate Taster (Impuls).",
+      "url": "https://prov.busser.io/eep/F6-02-01-Light.json"
+    },
+    {
+      "id": "switch_state_2ch",
+      "name": "2-Kanal Kippschalter",
+      "description": "Links: Oben=AN / Unten=AUS (Zustand bleibt).",
+      "url": "https://prov.busser.io/eep/F6-02-01-Switch-2ch.json"
+    },
+    {
+      "id": "simple_2ch",
+      "name": "2-Kanal Simpel",
+      "description": "Fasst linke und rechte Wippe zusammen.",
+      "url": "https://prov.busser.io/eep/F6-02-01-Simple.json"
+    }
+  ]
+}

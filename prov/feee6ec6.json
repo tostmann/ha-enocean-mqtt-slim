@@ -1,0 +1,20 @@
+{
+  "device_id": "feee6ec6",
+  "name": "PTM-216 Wohnzimmer",
+  "manufacturer": "EnOcean GmbH",
+  "default_variant": "scene_ctrl",
+  "variants": [
+    {
+      "id": "scene_ctrl",
+      "name": "Szenen Steuerung",
+      "description": "Buttons A/B/C/D für Automatisierungen.",
+      "url": "https://prov.busser.io/eep/F6-02-01-Scenes.json"
+    },
+    {
+      "id": "light_4ch",
+      "name": "Klassisch (4-Kanal Licht)",
+      "description": "Standard Lichtschalter Belegung.",
+      "url": "https://prov.busser.io/eep/F6-02-01-Light.json"
+    }
+  ]
+}
