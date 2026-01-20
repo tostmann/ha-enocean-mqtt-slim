@@ -24,7 +24,12 @@
         "unit": "%"
       },
       "native": {},
-      "component": "sensor"
+      "component": "sensor",
+      "device_class": "battery",
+      "state_class": "measurement",
+      "unit": "%",
+      "icon": "mdi:battery",
+      "entity_category": "diagnostic"
     },
     "BA": {
       "type": "state",
@@ -53,6 +58,7 @@
       "component": "sensor",
       "device_class": "signal_strength",
       "state_class": "measurement",
+      "entity_category": "diagnostic",
       "unit": "dBm",
       "icon": "mdi:wifi",
       "description": "Signal strength"
@@ -61,6 +67,7 @@
       "name": "Last Seen",
       "component": "sensor",
       "device_class": "timestamp",
+      "entity_category": "diagnostic",
       "icon": "mdi:clock-outline",
       "description": "Last telegram received"
     }

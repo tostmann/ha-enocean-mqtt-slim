@@ -133,7 +133,8 @@
         }
       },
       "native": {},
-      "component": "sensor"
+      "component": "light",
+      "icon": "mdi:lightbulb"
     },
     "dimming.EDIM": {
       "type": "state",
@@ -152,7 +153,8 @@
         "def": 0
       },
       "native": {},
-      "component": "sensor"
+      "component": "light",
+      "icon": "mdi:lightbulb"
     },
     "dimming.RMP": {
       "type": "state",
@@ -171,7 +173,8 @@
         "def": 0
       },
       "native": {},
-      "component": "sensor"
+      "component": "light",
+      "icon": "mdi:lightbulb"
     },
     "dimming.EDIMR": {
       "type": "state",
@@ -191,7 +194,8 @@
         "def": 0
       },
       "native": {},
-      "component": "sensor"
+      "component": "light",
+      "icon": "mdi:lightbulb"
     },
     "dimming.STR": {
       "type": "state",
@@ -207,7 +211,8 @@
         "def": false
       },
       "native": {},
-      "component": "sensor"
+      "component": "light",
+      "icon": "mdi:lightbulb"
     },
     "dimming.SW": {
       "type": "state",
@@ -223,7 +228,8 @@
         "def": false
       },
       "native": {},
-      "component": "sensor"
+      "component": "light",
+      "icon": "mdi:lightbulb"
     },
     "setpoint": {
       "type": "channel",
@@ -234,7 +240,10 @@
         }
       },
       "native": {},
-      "component": "sensor"
+      "component": "number",
+      "device_class": "temperature",
+      "unit": "°C",
+      "icon": "mdi:thermostat"
     },
     "setpoint.SP": {
       "type": "state",
@@ -253,7 +262,10 @@
         "def": 0
       },
       "native": {},
-      "component": "sensor"
+      "component": "number",
+      "device_class": "temperature",
+      "unit": "°C",
+      "icon": "mdi:thermostat"
     },
     "setpoint.BSP": {
       "type": "state",
@@ -272,7 +284,10 @@
         "def": 1
       },
       "native": {},
-      "component": "sensor"
+      "component": "number",
+      "device_class": "temperature",
+      "unit": "°C",
+      "icon": "mdi:thermostat"
     },
     "control_variable": {
       "type": "channel",
@@ -392,6 +407,7 @@
       "component": "sensor",
       "device_class": "signal_strength",
       "state_class": "measurement",
+      "entity_category": "diagnostic",
       "unit": "dBm",
       "icon": "mdi:wifi",
       "description": "Signal strength"
@@ -400,6 +416,7 @@
       "name": "Last Seen",
       "component": "sensor",
       "device_class": "timestamp",
+      "entity_category": "diagnostic",
       "icon": "mdi:clock-outline",
       "description": "Last telegram received"
     }
@@ -544,21 +561,27 @@
           "bitoffs": "8",
           "bitsize": "8",
           "value": {
-            "+": [
+            "if": [
               {
-                "*": [
+                "+": [
                   {
-                    "-": [
+                    "*": [
                       {
-                        "var": "value"
+                        "-": [
+                          {
+                            "var": "value"
+                          },
+                          0
+                        ]
                       },
-                      0
+                      0.39215686274509803
                     ]
                   },
-                  0.39215686274509803
+                  0
                 ]
               },
-              0
+              "ON",
+              "OFF"
             ]
           },
           "decimals": 0
@@ -569,7 +592,13 @@
           "bitoffs": "16",
           "bitsize": "8",
           "value": {
-            "var": "value"
+            "if": [
+              {
+                "var": "value"
+              },
+              "ON",
+              "OFF"
+            ]
           },
           "decimals": 0
         },
@@ -593,7 +622,13 @@
           "bitoffs": "29",
           "bitsize": "1",
           "value": {
-            "var": "value"
+            "if": [
+              {
+                "var": "value"
+              },
+              "ON",
+              "OFF"
+            ]
           }
         },
         {
@@ -602,11 +637,17 @@
           "bitoffs": "30",
           "bitsize": "1",
           "value": {
-            "==": [
+            "if": [
               {
-                "var": "value"
+                "==": [
+                  {
+                    "var": "value"
+                  },
+                  1
+                ]
               },
-              1
+              "ON",
+              "OFF"
             ]
           }
         },
@@ -616,11 +657,17 @@
           "bitoffs": "31",
           "bitsize": "1",
           "value": {
-            "==": [
+            "if": [
               {
-                "var": "value"
+                "==": [
+                  {
+                    "var": "value"
+                  },
+                  1
+                ]
               },
-              1
+              "ON",
+              "OFF"
             ]
           }
         }
