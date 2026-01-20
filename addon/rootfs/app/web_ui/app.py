@@ -1,5 +1,5 @@
 """
-Web UI Application (Starlette) - FIX for Info Modals
+Web UI Application (Starlette) - FIX Connection Type Logic
 """
 import os
 import json
@@ -30,7 +30,7 @@ async def api_status(request):
         status['discovery_active'] = service.is_discovery_active()
         status['discovery_remaining'] = service.get_discovery_time_remaining()
         
-        # --- NEW: MQTT Info for Modal ---
+        # --- MQTT Info ---
         status['mqtt_info'] = {
             'host': service.mqtt_host,
             'port': service.mqtt_port,
@@ -43,19 +43,40 @@ async def api_status(request):
             status['mqtt_info']['connected'] = service.mqtt_handler.connected
             status['mqtt_info']['client_id'] = getattr(service.mqtt_handler, 'client_id', 'Unknown')
 
-        # --- NEW: Gateway Info for Modal ---
+        # --- Gateway Info (FIXED LOGIC) ---
+        
+        # 1. Adresse ermitteln (kann in serial_port oder tcp_address stehen)
+        conn_address = service.serial_port or service.tcp_address or "Not Configured"
+        
+        # 2. Typ anhand des Inhalts bestimmen
+        if 'tcp://' in str(conn_address).lower():
+            conn_type = 'TCP Network'
+        elif '/dev/' in str(conn_address).lower() or 'com' in str(conn_address).lower():
+            conn_type = 'Serial (USB)'
+        else:
+            conn_type = 'Serial' # Fallback
+            
         status['gateway_info'] = {
-            'type': 'Serial' if service.serial_port else 'TCP',
-            'address': service.serial_port or service.tcp_address,
+            'type': conn_type,
+            'address': conn_address,
             'connected': False,
             'base_id': 'Unknown',
             'version': 'Unknown'
         }
+        
         if service.serial_handler:
-            status['gateway_info']['connected'] = getattr(service.serial_handler, 'is_open', False)
-            # Versuche Base ID und Version zu lesen (falls im SerialHandler gespeichert)
+            # Connection Status
+            if hasattr(service.serial_handler, 'is_open'):
+                if callable(service.serial_handler.is_open):
+                    status['gateway_info']['connected'] = service.serial_handler.is_open()
+                else:
+                    status['gateway_info']['connected'] = service.serial_handler.is_open
+
+            # Base ID (Hex String safely formatted)
             if hasattr(service.serial_handler, 'base_id') and service.serial_handler.base_id:
-                status['gateway_info']['base_id'] = f"{service.serial_handler.base_id:08x}".upper()
+                status['gateway_info']['base_id'] = str(service.serial_handler.base_id).upper()
+            
+            # Version Info
             if hasattr(service.serial_handler, 'version_info') and service.serial_handler.version_info:
                 status['gateway_info']['version'] = str(service.serial_handler.version_info)
     else:
@@ -65,9 +86,6 @@ async def api_status(request):
         status['gateway_info'] = {}
 
     return JSONResponse(status)
-
-# ... (Rest der Datei: api_discovery_control, api_devices, api_device_detail, api_eep_profiles ist identisch wie vorher) ...
-# ... Bitte den restlichen Code aus der vorherigen Version übernehmen oder hier kopieren ...
 
 async def api_discovery_control(request):
     service = service_state.get_service()
