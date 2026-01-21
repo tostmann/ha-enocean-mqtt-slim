@@ -1,0 +1,37 @@
+# Basis-Image: Python 3.11 auf Alpine Linux (klein & sicher)
+FROM python:3.11-alpine
+
+# Umgebungsvariablen
+ENV PYTHONUNBUFFERED=1
+
+# 1. Build-Tools installieren
+# Wichtig für uvicorn[standard] (uvloop, httptools) und aiohttp
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    python3-dev \
+    bash
+
+# Arbeitsverzeichnis
+WORKDIR /app
+
+# 2. Python-Abhängigkeiten installieren
+COPY addon/rootfs/app/requirements.txt .
+
+# Upgrade pip, installiere fehlendes aiohttp und dann die requirements
+RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir aiohttp && \
+    pip3 install --no-cache-dir -r requirements.txt
+
+# 3. Start-Skript kopieren
+COPY addon/rootfs/run.sh /run.sh
+RUN chmod a+x /run.sh
+
+# 4. App-Code kopieren
+COPY addon/rootfs/app /app
+
+# Web-UI Port dokumentieren (entspricht main.py)
+EXPOSE 8099
+
+# Startbefehl
+CMD ["/run.sh"]
