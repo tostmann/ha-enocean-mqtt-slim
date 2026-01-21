@@ -24,7 +24,7 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
     pip3 install --no-cache-dir -r requirements.txt
 
 # 3. Start-Skript kopieren
-COPY addon/rootfs/run.sh /run.sh
+COPY run_standalone.sh /run.sh
 RUN chmod a+x /run.sh
 
 # 4. App-Code kopieren

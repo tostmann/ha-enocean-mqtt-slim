@@ -1,127 +1,44 @@
-#!/usr/bin/env bash
+#!/usr/bin/with-contenv bashio
 
-# --- 1. Umgebungserkennung & Bashio laden ---
+# Configuration loading with priority logic
+TCP_ADDR=$(bashio::config 'tcp_address')
+SERIAL_DEV=$(bashio::config 'serial_device')
 
-# WICHTIG: Wir müssen bashio 'sourcen', damit Funktionen wie bashio::config verfügbar sind.
-if [ -f "/usr/lib/bashio/bashio" ]; then
-    source /usr/lib/bashio/bashio
-    MODE="HA"
-elif [ -f "/usr/bin/bashio" ]; then
-    source /usr/bin/bashio
-    MODE="HA"
+# Logic: TCP Address overrides Serial Device selection
+if [ -n "$TCP_ADDR" ]; then
+    bashio::log.info "Configuration: Using TCP Address provided in text field."
+    SERIAL_PORT="$TCP_ADDR"
+elif [ -n "$SERIAL_DEV" ] && [ "$SERIAL_DEV" != "null" ]; then
+    bashio::log.info "Configuration: Using selected Serial Device."
+    SERIAL_PORT="$SERIAL_DEV"
 else
-    # Fallback für Standalone
-    MODE="STANDALONE"
+    # Fallback / Error
+    bashio::log.warning "No connection configured! Please select a device or enter a TCP address."
+    SERIAL_PORT="/dev/ttyUSB0"
 fi
 
-# Logging Wrapper
-log_info() {
-    if [ "$MODE" = "HA" ] && command -v bashio::log.info >/dev/null 2>&1; then
-        bashio::log.info "$@"
-    else
-        echo "$(date '+%Y-%m-%d %H:%M:%S') [INFO] $@"
-    fi
-}
+LOG_LEVEL=$(bashio::config 'log_level')
 
-log_warn() {
-    if [ "$MODE" = "HA" ] && command -v bashio::log.warning >/dev/null 2>&1; then
-        bashio::log.warning "$@"
-    else
-        echo "$(date '+%Y-%m-%d %H:%M:%S') [WARN] $@"
-    fi
-}
-
-# Config Helper
-ha_config() {
-    if [ "$MODE" = "HA" ] && command -v bashio::config >/dev/null 2>&1; then
-        if bashio::config.has_value "$1"; then
-            bashio::config "$1"
-        fi
-    fi
-}
-
-# Service Helper
-ha_service() {
-    if [ "$MODE" = "HA" ] && command -v bashio::services >/dev/null 2>&1; then
-        bashio::services "$1" "$2"
-    fi
-}
-
-
-# --- 2. Konfiguration laden ---
-
-log_info "Starting Add-on in $MODE mode..."
-
-# A) Ziel-Schnittstelle (Serial/TCP) bestimmen
-# Priorität: 1. ENV (Standalone) -> 2. HA Config (TCP) -> 3. HA Config (Serial)
-
-# Werte aus HA holen (falls möglich)
-HA_TCP=$(ha_config 'tcp_address')
-HA_SERIAL=$(ha_config 'serial_device')
-
-if [ -n "$SERIAL_PORT" ]; then
-    TARGET_PORT="$SERIAL_PORT"
-    log_info "Configuration: Using ENV variable SERIAL_PORT."
-elif [ -n "$HA_TCP" ]; then
-    log_info "Configuration: Using TCP Address from HA Add-on config."
-    TARGET_PORT="$HA_TCP"
-elif [ -n "$HA_SERIAL" ] && [ "$HA_SERIAL" != "null" ]; then
-    log_info "Configuration: Using Serial Device from HA Add-on config."
-    TARGET_PORT="$HA_SERIAL"
+# --- Version automatisch holen ---
+if bashio::addon.version > /dev/null 2>&1; then
+    ADDON_VERSION="$(bashio::addon.version)"
 else
-    log_warn "No connection configured! Defaulting to /dev/ttyUSB0"
-    TARGET_PORT="/dev/ttyUSB0"
+    ADDON_VERSION="dev"
 fi
+bashio::log.info "Add-on Version: ${ADDON_VERSION}"
 
+# Export environment variables
+export ADDON_VERSION="${ADDON_VERSION}"
+export SERIAL_PORT="${SERIAL_PORT}"
+export LOG_LEVEL="${LOG_LEVEL}"
+export MQTT_HOST=$(bashio::services mqtt "host")
+export MQTT_PORT=$(bashio::services mqtt "port")
+export MQTT_USER=$(bashio::services mqtt "username")
+export MQTT_PASSWORD=$(bashio::services mqtt "password")
+export RESTORE_STATE=$(bashio::config 'restore_state')
+export RESTORE_DELAY=$(bashio::config 'restore_delay')
+export PROVISIONING_URL=$(bashio::config 'provisioning_url')
 
-# B) Log Level
-# Hier fehlte vorher der Fallback, falls bashio fehlschlägt
-HA_LOG=$(ha_config 'log_level')
-if [ -n "$HA_LOG" ]; then
-    LOG_LEVEL="$HA_LOG"
-elif [ -z "$LOG_LEVEL" ]; then
-    LOG_LEVEL="info"
-fi
-
-
-# C) Version
-if [ -z "$ADDON_VERSION" ]; then
-    if [ "$MODE" = "HA" ] && command -v bashio::addon.version >/dev/null 2>&1; then
-        ADDON_VERSION="$(bashio::addon.version)"
-    else
-        ADDON_VERSION="standalone-dev"
-    fi
-fi
-log_info "Add-on Version: ${ADDON_VERSION}"
-
-
-# D) MQTT Credentials
-if [ -z "$MQTT_HOST" ]; then
-    MQTT_HOST=$(ha_service mqtt "host")
-    MQTT_PORT=$(ha_service mqtt "port")
-    MQTT_USER=$(ha_service mqtt "username")
-    MQTT_PASSWORD=$(ha_service mqtt "password")
-fi
-
-# E) Sonstiges
-if [ -z "$RESTORE_STATE" ]; then RESTORE_STATE=$(ha_config 'restore_state'); fi
-if [ -z "$RESTORE_DELAY" ]; then RESTORE_DELAY=$(ha_config 'restore_delay'); fi
-
-
-# --- 3. Export & Start ---
-
-export ADDON_VERSION
-export SERIAL_PORT="$TARGET_PORT"
-export LOG_LEVEL
-export MQTT_HOST
-export MQTT_PORT
-export MQTT_USER
-export MQTT_PASSWORD
-export RESTORE_STATE
-export RESTORE_DELAY
-
-log_info "Target Interface: ${SERIAL_PORT}"
-log_info "Log Level: ${LOG_LEVEL}"
-
+bashio::log.info "Starting EnOcean MQTT..."
 cd /app
 exec python3 main.py

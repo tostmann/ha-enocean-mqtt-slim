@@ -1,4 +1,3 @@
-```markdown
 # Standalone Installation Guide (Docker)
 
 This guide describes how to run the **EnOcean MQTT Gateway** as a standalone Docker container. This setup works independently of the Home Assistant Supervisor and is ideal for users of **Zigbee2MQTT**, **Home Assistant Core**, **OpenHAB**, **ioBroker**, or anyone who prefers a lightweight container solution.
